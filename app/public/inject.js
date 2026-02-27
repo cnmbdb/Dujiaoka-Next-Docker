@@ -4,6 +4,7 @@
 
   var cfg = window.__APPSTORE_EXPAND__ || {};
   var title = cfg.title || 'AppStore Expand';
+  var buttonText = cfg.buttonText || '扩展应用商店';
   var statusText = cfg.statusText || '应用商店扩展开启';
   var panelUrl = window.location.origin + '/appstore-expand/panel';
   var healthUrl = window.location.origin + '/appstore-expand/health';
@@ -13,6 +14,10 @@
     lastAt: 0
   };
   var HEALTH_INTERVAL_MS = 15000;
+  var pulseTimer = null;
+  var pulseStartTs = Date.now();
+  var panelToggleBusy = false;
+  var lastPanelOpenAt = 0;
 
   function qs(sel) { return document.querySelector(sel); }
   function qsa(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
@@ -30,13 +35,58 @@
     var style = document.createElement('style');
     style.id = 'dj-appstore-expand-style';
     style.textContent = '' +
-      '#dj-appstore-expand-btn{height:32px;padding:0 12px;border:1px solid hsl(var(--input, 215 20% 25%));background:transparent;color:hsl(var(--foreground, 220 15% 90%));border-radius:6px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;line-height:1;white-space:nowrap;transition:all .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.2);}' +
-      '#dj-appstore-expand-btn:hover{background:hsl(var(--accent, 220 16% 12%));color:hsl(var(--accent-foreground, 220 15% 90%));}' +
-      '#dj-appstore-expand-btn:focus-visible{outline:none;box-shadow:0 0 0 1px hsl(var(--ring, 215 20% 45%));}' +
-      '#dj-appstore-expand-btn .dj-appstore-expand-dot{width:8px;height:8px;border-radius:999px;display:inline-block;background:#ef4444;}' +
+      '#dj-appstore-expand-btn{height:34px;padding:0 13px;border:1.5px solid rgba(34,197,94,.14);background:linear-gradient(135deg,rgba(15,23,42,.75),rgba(15,23,42,.5));background-size:180% 180%;background-position:0% 50%;color:hsl(var(--foreground, 220 15% 90%));border-radius:9px;display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:12px;line-height:1;white-space:nowrap;transition:all .2s ease;will-change:box-shadow,border-color,background-position,transform;transform:translateZ(0);animation:dj-appstore-border-shift 3.2s linear infinite;pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;}' +
+      '#dj-appstore-expand-btn:hover{border-color:rgba(74,222,128,.7);background:linear-gradient(135deg,rgba(22,36,56,.9),rgba(20,34,53,.65));}' +
+      '#dj-appstore-expand-btn.is-open{border-color:rgba(74,222,128,.8);background:linear-gradient(135deg,rgba(22,36,56,.95),rgba(20,34,53,.75));}' +
+      '#dj-appstore-expand-btn:focus-visible{outline:none;box-shadow:0 0 0 1px rgba(74,222,128,.82),0 0 14px rgba(34,197,94,.35);}' +
+      '#dj-appstore-expand-btn .dj-appstore-expand-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:currentColor;opacity:.98;}' +
+      '@keyframes dj-appstore-border-shift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}' +
       '#dj-appstore-expand-host{display:flex;align-items:center;gap:8px;}' +
-      '#dj-appstore-expand-panel{position:fixed;top:56px;right:12px;width:min(520px,90vw);height:70vh;border:1px solid #2b303b;background:#0f1115;z-index:9999;border-radius:10px;overflow:hidden;}';
+      '#dj-appstore-expand-backdrop{position:fixed;inset:0;background:rgba(2,6,16,.62);backdrop-filter:blur(2px);z-index:9998;opacity:0;transition:opacity .18s ease;}' +
+      '#dj-appstore-expand-backdrop.is-open{opacity:1;}' +
+      '#dj-appstore-expand-panel{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%) scale(.985);opacity:0;width:min(1180px,96vw);height:min(88vh,920px);border:1px solid #2b303b;background:#0f1115;z-index:9999;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 64px rgba(0,0,0,.52);transition:opacity .2s ease,transform .22s ease;}' +
+      '#dj-appstore-expand-panel.is-open{opacity:1;transform:translate(-50%,-50%) scale(1);}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-panel-head{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #252b36;background:#111722;}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-panel-title{font-size:13px;font-weight:600;color:hsl(var(--foreground, 220 15% 90%));}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-panel-close{width:26px;height:26px;border:1px solid #2d3440;border-radius:7px;background:#0f1724;color:hsl(var(--foreground, 220 15% 90%));display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease;}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-panel-close:hover{border-color:rgba(74,222,128,.72);color:#ffffff;background:#152031;}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-panel-close:focus-visible{outline:none;box-shadow:0 0 0 1px rgba(74,222,128,.82),0 0 12px rgba(34,197,94,.24);}' +
+      '#dj-appstore-expand-panel .dj-appstore-expand-frame{width:100%;height:100%;flex:1;border:0;background:#0f1115;}' +
+      '@media (max-width:720px){#dj-appstore-expand-panel{left:8px;top:10px;transform:none;width:calc(100vw - 16px);height:calc(100vh - 20px);border-radius:12px;}#dj-appstore-expand-panel.is-open{transform:none;}}';
     document.head.appendChild(style);
+  }
+
+  function ensurePulseDriver() {
+    if (pulseTimer) return;
+    pulseStartTs = Date.now();
+    pulseTimer = setInterval(function () {
+      var btn = qs('#dj-appstore-expand-btn');
+      if (!btn || !isVisible(btn)) return;
+
+      // 0 -> 亮 -> 0，从接近 0 光强开始的平滑呼吸
+      var period = 3.8;
+      var phase = ((Date.now() - pulseStartTs) / 1000) / period * Math.PI * 2;
+      var p = (Math.sin(phase - Math.PI / 2) + 1) / 2;
+      var eased = p * p * (3 - 2 * p);
+
+      var borderAlpha = 0.02 + 0.36 * eased;
+      var alphaRing = 0.00 + 0.07 * eased;
+      var alphaNear = 0.00 + 0.17 * eased;
+      var alphaFar = 0.00 + 0.09 * eased;
+      var spread = 0.00 + 1.4 * eased;
+      var blurNear = 0.00 + 7.0 * eased;
+      var blurFar = 0.00 + 14.0 * eased;
+
+      btn.style.borderColor = 'rgba(74,222,128,' + borderAlpha.toFixed(3) + ')';
+      if (eased < 0.02) {
+        btn.style.boxShadow = 'none';
+      } else {
+        btn.style.boxShadow =
+          '0 0 0 ' + spread.toFixed(2) + 'px rgba(34,197,94,' + alphaRing.toFixed(3) + '),' +
+          '0 0 ' + blurNear.toFixed(2) + 'px rgba(34,197,94,' + alphaNear.toFixed(3) + '),' +
+          '0 0 ' + blurFar.toFixed(2) + 'px rgba(34,197,94,' + alphaFar.toFixed(3) + ')';
+      }
+    }, 80);
   }
 
   function locateHeader() {
@@ -171,58 +221,115 @@
     var btn = document.createElement('button');
     btn.id = 'dj-appstore-expand-btn';
     btn.type = 'button';
-    // 保持与后台语言切换按钮同视觉体系
-    btn.className = 'flex items-center whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 shadow-sm text-start h-8 text-xs';
+    btn.className = 'flex items-center whitespace-nowrap';
     btn.setAttribute('aria-label', title);
     btn.setAttribute('title', title);
 
-    var dot = document.createElement('span');
-    dot.className = 'dj-appstore-expand-dot';
-    dot.id = 'dj-appstore-expand-dot';
+    var icon = document.createElement('span');
+    icon.className = 'dj-appstore-expand-icon';
+    icon.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h16"></path><path d="M5 9.5l1.2-4h11.6l1.2 4"></path><path d="M5 9.5v8.7a1.8 1.8 0 0 0 1.8 1.8h10.4a1.8 1.8 0 0 0 1.8-1.8V9.5"></path><path d="M9.5 13h5"></path><path d="M12 13v4"></path></svg>';
 
     var text = document.createElement('span');
-    text.textContent = title;
+    text.textContent = buttonText;
 
-    btn.appendChild(dot);
+    btn.appendChild(icon);
     btn.appendChild(text);
 
-    btn.onclick = function () {
+    function togglePanel(evt) {
+      if (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+      }
+      if (panelToggleBusy) return;
+      panelToggleBusy = true;
+      setTimeout(function () {
+        panelToggleBusy = false;
+      }, 140);
+
       var existing = qs('#dj-appstore-expand-panel');
       if (existing) {
-        existing.remove();
+        closePanel();
         return;
       }
+
+      lastPanelOpenAt = Date.now();
+      var backdrop = document.createElement('div');
+      backdrop.id = 'dj-appstore-expand-backdrop';
+
       var panel = document.createElement('div');
       panel.id = 'dj-appstore-expand-panel';
+
+      var head = document.createElement('div');
+      head.className = 'dj-appstore-expand-panel-head';
+
+      var titleEl = document.createElement('div');
+      titleEl.className = 'dj-appstore-expand-panel-title';
+      titleEl.textContent = buttonText;
+
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'dj-appstore-expand-panel-close';
+      closeBtn.setAttribute('aria-label', '关闭');
+      closeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>';
+      closeBtn.onclick = function (e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        closePanel();
+      };
+
+      head.appendChild(titleEl);
+      head.appendChild(closeBtn);
+
       var ifr = document.createElement('iframe');
+      ifr.className = 'dj-appstore-expand-frame';
       ifr.src = panelUrl;
-      ifr.style.cssText = 'width:100%;height:100%;border:0;background:#0f1115;';
+      backdrop.onclick = function () {
+        if (Date.now() - lastPanelOpenAt < 180) return;
+        closePanel();
+      };
+
+      panel.appendChild(head);
       panel.appendChild(ifr);
+      document.body.appendChild(backdrop);
       document.body.appendChild(panel);
+      requestAnimationFrame(function () {
+        backdrop.classList.add('is-open');
+        panel.classList.add('is-open');
+      });
+      btn.classList.add('is-open');
       updateStatus(true);
-    };
+    }
+
+    btn.addEventListener('click', togglePanel);
+    btn.addEventListener('keydown', function (evt) {
+      if (evt.key === 'Enter' || evt.key === ' ') togglePanel(evt);
+    });
 
     return btn;
   }
 
-  function renderStatus() {
-    var dot = qs('#dj-appstore-expand-dot');
+  function closePanel() {
+    var panel = qs('#dj-appstore-expand-panel');
+    if (panel) panel.remove();
+    var backdrop = qs('#dj-appstore-expand-backdrop');
+    if (backdrop) backdrop.remove();
     var btn = qs('#dj-appstore-expand-btn');
-    if (!dot || !btn) return;
+    if (btn) btn.classList.remove('is-open');
+  }
+
+  function renderStatus() {
+    var btn = qs('#dj-appstore-expand-btn');
+    if (!btn) return;
     if (healthState.ok === null) {
-      dot.style.background = '#f59e0b';
-      dot.title = '应用商店扩展状态检测中';
       btn.setAttribute('title', title + ' · 状态检测中');
       return;
     }
     if (healthState.ok) {
-      dot.style.background = '#22c55e';
-      dot.title = statusText;
       btn.setAttribute('title', title + ' · ' + statusText);
       return;
     }
-    dot.style.background = '#ef4444';
-    dot.title = '应用商店扩展异常';
     btn.setAttribute('title', title + ' · 应用商店扩展异常');
   }
 
@@ -251,8 +358,7 @@
     window.__APPSTORE_EXPAND_CLOSE_BOUND__ = true;
     window.addEventListener('keydown', function (evt) {
       if (evt.key !== 'Escape') return;
-      var panel = qs('#dj-appstore-expand-panel');
-      if (panel) panel.remove();
+      closePanel();
     });
   }
 
@@ -261,12 +367,12 @@
       if (window.location.pathname === '/login') {
         var oldBtn = qs('#dj-appstore-expand-btn');
         if (oldBtn) oldBtn.remove();
-        var oldPanel = qs('#dj-appstore-expand-panel');
-        if (oldPanel) oldPanel.remove();
+        closePanel();
         return false;
       }
 
       ensureStyle();
+      ensurePulseDriver();
       var btn = qs('#dj-appstore-expand-btn') || createBtn();
       var langNode = pickLanguageNode();
       var group = null;
@@ -328,6 +434,7 @@
     patchHistoryNavigation();
     bindPanelCloseBehavior();
     renderStatus();
+    ensurePulseDriver();
 
     var tick = 0;
     var timer = setInterval(function () {
