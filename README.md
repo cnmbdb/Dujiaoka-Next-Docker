@@ -31,14 +31,17 @@ docker compose up -d --build
 - `GET /health`：健康检查接口
 - `GET /inject/appstore-expand.js`：后台注入脚本
 - `GET /panel`：扩展面板页面（抽屉 iframe 打开）
+- 顶部入口按钮：
+  - 固定镶嵌在后台顶栏右侧操作区，并位于语言切换左侧
+  - 按钮视觉样式对齐 Dujiaoka-Next 顶栏控件体系（同高度/同边框语义）
+  - 健康状态点：绿（正常）/红（异常）/黄（检测中）
+  - 支持 `Esc` 快捷关闭扩展面板
 
 ### 3. 后台按钮注入逻辑
 
-- 优先插入到“语言切换左侧”
-- 如果无法定位语言节点，自动降级到右上角浮动按钮
-- 按钮显示扩展状态：
-  - 绿色：扩展正常
-  - 红色：扩展异常
+- 优先识别后台 `header` 右侧动作区并插入首位，确保入口稳定出现在语言切换左侧
+- 监听路由切换（`pushState/replaceState/popstate/hashchange`）与 DOM 重渲染，自动重挂载
+- 健康检测做了节流，避免 `/health` 高频刷请求日志
 
 ### 4. 接入 Dujiaoka-Next 方式（非侵入）
 
@@ -101,4 +104,3 @@ docker compose up -d --force-recreate admin
 - 不直接改 Dujiaoka-Next 核心源码
 - 插件独立版本管理、独立发布
 - 接入层只保留在网关（Nginx）与注入脚本
-
