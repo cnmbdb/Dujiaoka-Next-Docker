@@ -59,6 +59,20 @@ flowchart TD
 docker compose up -d --build
 ```
 
+`.env` 关键开关说明：
+- `HOST_BIND_IP=0.0.0.0`：允许通过 `服务器IP:端口` 直接访问（默认）
+- `HOST_BIND_IP=127.0.0.1`：仅本机可访问端口（推荐域名+Nginx+HTTPS后使用）
+
+注意事项（重要）：
+1. 改完 `HOST_BIND_IP` 后，必须执行：
+
+```bash
+docker compose up -d --force-recreate
+```
+
+2. 当前 `.env` 里 `API_URL` 为 `http://127.0.0.1:3001`，上域名后必须改为公网 API 域名（例如 `https://api.xxx.com`），否则浏览器会请求回环地址。
+3. 当 `HOST_BIND_IP=127.0.0.1` 时，宝塔里“点端口直接用 IP 打开”会失效，这是正常现象；应通过域名反向代理访问。
+
 ## 第 6 步：查看容器并进入后台
 
 1. 回到宝塔首页 -> Docker -> 容器。
@@ -78,6 +92,12 @@ docker compose up -d --build
 2. 添加网站并绑定你的域名。
 3. 在网站 SSL 页面申请证书（Let's Encrypt）。
 4. 开启强制 HTTPS。
+5. 回到项目 `.env`，把 `HOST_BIND_IP` 改为 `127.0.0.1`，关闭外部 `IP:端口` 访问：
+
+```bash
+HOST_BIND_IP=127.0.0.1
+docker compose up -d --force-recreate
+```
 
 ## 常用运维命令
 
