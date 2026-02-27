@@ -1,0 +1,36 @@
+# D&J Studio 配置文件示例
+# 复制为 config.yml 并修改配置
+
+server:
+  host: 0.0.0.0
+  port: 3000
+  mode: debug  # 生产环境用 release 时需配置强 JWT 密钥
+
+database:
+  driver: postgres
+  dsn: host=dujiao-postgres port=5432 user=dujiao_user password=YOUR_DB_PASSWORD dbname=dujiao_db sslmode=disable
+
+jwt:
+  secret: YOUR_JWT_SECRET_AT_LEAST_32_CHARS  # 至少32位
+  expire_hours: 24
+
+user_jwt:
+  secret: YOUR_USER_JWT_SECRET_AT_LEAST_32   # 至少32位
+  expire_hours: 24
+
+redis:
+  enabled: true
+  host: dujiao-redis
+  port: 6379
+  password: ""
+  db: 0
+
+queue:
+  enabled: true
+  host: dujiao-redis
+  port: 6379
+  password: ""
+  db: 1
+
+# 完整配置请参考官方文档
+# https://dujiao-next.com/config/config-yml
