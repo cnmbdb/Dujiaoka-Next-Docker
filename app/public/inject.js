@@ -1,25 +1,86 @@
 (function () {
   if (window.__APPSTORE_EXPAND_MOUNTED__) return;
   window.__APPSTORE_EXPAND_MOUNTED__ = true;
+  if (window.location.pathname === '/login') return;
 
   var cfg = window.__APPSTORE_EXPAND__ || {};
   var title = cfg.title || 'AppStore Expand';
   var statusText = cfg.statusText || '应用商店扩展开启';
-
   var panelUrl = window.location.origin + '/appstore-expand/panel';
   var healthUrl = window.location.origin + '/appstore-expand/health';
 
   function qs(sel) { return document.querySelector(sel); }
   function qsa(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
 
+  function isVisible(el) {
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return false;
+    var s = window.getComputedStyle(el);
+    return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
+  }
+
+  function ensureStyle() {
+    if (qs('#dj-appstore-expand-style')) return;
+    var style = document.createElement('style');
+    style.id = 'dj-appstore-expand-style';
+    style.textContent = '' +
+      '#dj-appstore-expand-btn{height:32px;padding:0 12px;border:1px solid #2b303b;background:#111318;color:#e5e7eb;border-radius:8px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;line-height:1;white-space:nowrap;transition:all .15s ease;}' +
+      '#dj-appstore-expand-btn:hover{background:#171a21;border-color:#3b4252;}' +
+      '#dj-appstore-expand-btn .dj-appstore-expand-dot{width:8px;height:8px;border-radius:999px;display:inline-block;background:#ef4444;}' +
+      '#dj-appstore-expand-panel{position:fixed;top:56px;right:12px;width:min(520px,90vw);height:70vh;border:1px solid #2b303b;background:#0f1115;z-index:9999;border-radius:10px;overflow:hidden;}';
+    document.head.appendChild(style);
+  }
+
+  function locateActionGroup() {
+    // 优先命中 Dujiao-Next 顶栏结构：header + 右侧操作组
+    var header = qs('header.flex.items-center.justify-between');
+
+    if (!header) {
+      // 回退：按几何特征找顶部横向 header
+      var headers = qsa('header,div');
+      for (var i = 0; i < headers.length; i++) {
+        var h = headers[i];
+        if (!isVisible(h)) continue;
+        var hs = window.getComputedStyle(h);
+        if (hs.display !== 'flex') continue;
+        if (hs.justifyContent !== 'space-between') continue;
+        var hr = h.getBoundingClientRect();
+        if (hr.top < -2 || hr.top > 20) continue;
+        if (hr.height < 44 || hr.height > 90) continue;
+        if (hr.width < window.innerWidth * 0.45) continue;
+        header = h;
+        break;
+      }
+    }
+
+    if (!header) return null;
+
+    var group = header.querySelector(':scope > .flex.items-center.gap-2');
+    if (group && isVisible(group)) return group;
+
+    var children = Array.prototype.slice.call(header.children || []);
+    for (var j = children.length - 1; j >= 0; j--) {
+      var child = children[j];
+      if (!isVisible(child)) continue;
+      var s = window.getComputedStyle(child);
+      if (s.display !== 'flex') continue;
+      var r = child.getBoundingClientRect();
+      if (r.height < 28 || r.height > 52) continue;
+      if (r.left < window.innerWidth * 0.45) continue;
+      if (child.querySelector('button,[role="button"],a')) return child;
+    }
+
+    return null;
+  }
+
   function createBtn() {
     var btn = document.createElement('button');
     btn.id = 'dj-appstore-expand-btn';
     btn.type = 'button';
-    btn.style.cssText = 'height:30px;padding:0 10px;border:1px solid #0ea5e9;background:#0f172a;color:#e2e8f0;border-radius:8px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;';
 
     var dot = document.createElement('span');
-    dot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;';
+    dot.className = 'dj-appstore-expand-dot';
     dot.id = 'dj-appstore-expand-dot';
 
     var text = document.createElement('span');
@@ -27,87 +88,99 @@
 
     btn.appendChild(dot);
     btn.appendChild(text);
-    btn.addEventListener('click', openPanel);
+
+    btn.onclick = function () {
+      var existing = qs('#dj-appstore-expand-panel');
+      if (existing) {
+        existing.remove();
+        return;
+      }
+      var panel = document.createElement('div');
+      panel.id = 'dj-appstore-expand-panel';
+      var ifr = document.createElement('iframe');
+      ifr.src = panelUrl;
+      ifr.style.cssText = 'width:100%;height:100%;border:0;background:#0f1115;';
+      panel.appendChild(ifr);
+      document.body.appendChild(panel);
+    };
+
     return btn;
   }
 
-  function createFallbackHost() {
-    var host = document.createElement('div');
-    host.id = 'dj-appstore-expand-fallback';
-    host.style.cssText = 'position:fixed;top:14px;right:14px;z-index:9999;';
-    document.body.appendChild(host);
-    return host;
-  }
-
-  function mountBtn() {
-    var existing = qs('#dj-appstore-expand-btn');
-    if (existing) return;
-
-    var btn = createBtn();
-    var langNode = qsa('button,div,span,a').find(function (el) {
-      var t = (el.textContent || '').trim();
-      return t === '中文' || t === 'English' || t.indexOf('语言') !== -1 || t.indexOf('Language') !== -1;
-    });
-
-    if (langNode && langNode.parentElement) {
-      langNode.parentElement.insertBefore(btn, langNode);
-    } else {
-      createFallbackHost().appendChild(btn);
-    }
-  }
-
-  function openPanel() {
-    var wrap = qs('#dj-appstore-expand-drawer');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.id = 'dj-appstore-expand-drawer';
-      wrap.style.cssText = 'position:fixed;top:0;right:0;width:min(620px,96vw);height:100vh;background:#0b1220;border-left:1px solid #334155;z-index:10000;box-shadow:-8px 0 24px rgba(0,0,0,.35);';
-
-      var top = document.createElement('div');
-      top.style.cssText = 'height:46px;border-bottom:1px solid #334155;display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:#e2e8f0;font-size:13px;';
-      top.textContent = title;
-
-      var close = document.createElement('button');
-      close.textContent = '关闭';
-      close.style.cssText = 'border:1px solid #475569;background:#111827;color:#e2e8f0;border-radius:6px;padding:4px 8px;cursor:pointer;';
-      close.onclick = function () { wrap.remove(); };
-      top.appendChild(close);
-
-      var ifr = document.createElement('iframe');
-      ifr.src = panelUrl;
-      ifr.style.cssText = 'width:100%;height:calc(100vh - 46px);border:0;background:#0f172a;';
-
-      wrap.appendChild(top);
-      wrap.appendChild(ifr);
-      document.body.appendChild(wrap);
-    }
-  }
-
-  function pingHealth() {
-    fetch(healthUrl, { method: 'GET' }).then(function (r) {
+  function updateStatus() {
+    fetch(healthUrl, { cache: 'no-store' }).then(function (r) {
       var dot = qs('#dj-appstore-expand-dot');
       if (!dot) return;
       dot.style.background = r.ok ? '#22c55e' : '#ef4444';
       dot.title = r.ok ? statusText : '应用商店扩展异常';
-    }).catch(function () {
-      var dot = qs('#dj-appstore-expand-dot');
-      if (!dot) return;
-      dot.style.background = '#ef4444';
-      dot.title = '应用商店扩展异常';
-    });
+    }).catch(function () {});
+  }
+
+  function mountInTopNav() {
+    ensureStyle();
+    var btn = qs('#dj-appstore-expand-btn') || createBtn();
+    var group = locateActionGroup();
+    if (!group) {
+      if (btn.parentElement) btn.remove();
+      return false;
+    }
+
+    // 必须嵌入导航栏：清空所有浮动样式
+    btn.style.position = '';
+    btn.style.top = '';
+    btn.style.left = '';
+    btn.style.right = '';
+    btn.style.zIndex = '';
+    btn.style.display = 'inline-flex';
+
+    try {
+      group.style.gap = group.style.gap || '8px';
+      group.insertBefore(btn, group.firstElementChild || null);
+    } catch (_e) {
+      if (btn.parentElement) btn.remove();
+      return false;
+    }
+
+    updateStatus();
+    return true;
   }
 
   function boot() {
-    mountBtn();
-    pingHealth();
-    setInterval(pingHealth, 15000);
+    var tick = 0;
+    var timer = setInterval(function () {
+      tick += 1;
+      var ok = mountInTopNav();
+      if (ok && tick > 4) clearInterval(timer);
+      if (tick > 40) clearInterval(timer);
+    }, 300);
+
+    window.addEventListener('resize', mountInTopNav);
+    window.addEventListener('popstate', mountInTopNav);
+    window.addEventListener('hashchange', mountInTopNav);
+
+    var moTimer = null;
+    new MutationObserver(function () {
+      if (moTimer) return;
+      moTimer = setTimeout(function () {
+        moTimer = null;
+        mountInTopNav();
+      }, 120);
+    }).observe(document.documentElement, { childList: true, subtree: true });
+
+    // 常驻轻量守护：防止仪表台异步重渲染后按钮被覆盖移除
+    setInterval(function () {
+      var btn = qs('#dj-appstore-expand-btn');
+      if (!btn || !document.contains(btn) || !isVisible(btn)) {
+        mountInTopNav();
+      }
+    }, 2000);
+
+    setInterval(updateStatus, 15000);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
   } else {
     boot();
   }
-
-  new MutationObserver(mountBtn).observe(document.documentElement, { childList: true, subtree: true });
 })();
