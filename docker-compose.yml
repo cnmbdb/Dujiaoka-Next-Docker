@@ -1,161 +1,22 @@
 services:
-  # ---------------------------------------------------------------------------
-  # API 服务
-  # 提供后端 API 接口
-  # 访问地址: http://your-server-ip:3001
-  # 镜像: dujiaonext/api:${TAG}
-  # ---------------------------------------------------------------------------
-  api:
-    image: dujiaonext/api:${TAG:-latest}
-    pull_policy: always
-    container_name: dujiao-next-api
+  appstore-expand:
+    build:
+      context: ./app
+    container_name: dujiaoka-appstore-expand
     restart: unless-stopped
     ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${API_PORT:-3001}:3000"
+      - "${APPSTORE_PORT:-3010}:3010"
     environment:
-      - NODE_ENV=production
-      - TZ=Asia/Shanghai
-      - DJ_DEFAULT_ADMIN_USERNAME=${DJ_DEFAULT_ADMIN_USERNAME:-admin}
-      - DJ_DEFAULT_ADMIN_PASSWORD=${DJ_DEFAULT_ADMIN_PASSWORD:-admin123}
-    volumes:
-      - ./config/config.yml:/app/config.yml:ro
-      - ./.env:/etc/dujiao.env:ro
-      - ./data/uploads:/app/public/uploads
-      - ./data/logs:/app/logs
+      - PORT=3010
+      - APPSTORE_TITLE=${APPSTORE_TITLE:-Dujiaoka AppStore Expand}
+      - APPSTORE_STATUS_TEXT=${APPSTORE_STATUS_TEXT:-应用商店扩展开启}
     networks:
-      - dujiao-network
-    depends_on:
-      dujiao-postgres:
-        condition: service_healthy
-      dujiao-redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # ---------------------------------------------------------------------------
-  # User 服务（用户前台）
-  # 提供用户前端界面
-  # 访问地址: http://your-server-ip:3000
-  # 镜像: dujiaonext/user:${TAG}
-  # ---------------------------------------------------------------------------
-  user:
-    image: dujiaonext/user:${TAG:-latest}
-    pull_policy: always
-    container_name: dujiao-next-user
-    restart: unless-stopped
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${USER_PORT:-3000}:80"
-    environment:
-      - NODE_ENV=production
-      - TZ=Asia/Shanghai
-    volumes:
-      - ./.env:/etc/dujiao.env:ro
-      - ./nginx/user-nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - dujiao-network
-    depends_on:
-      - api
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # ---------------------------------------------------------------------------
-  # Admin 服务（后台管理）
-  # 提供后台管理界面
-  # 访问地址: http://your-server-ip:3002
-  # 镜像: dujiaonext/admin:${TAG}
-  # ---------------------------------------------------------------------------
-  admin:
-    image: dujiaonext/admin:${TAG:-latest}
-    pull_policy: always
-    container_name: dujiao-next-admin
-    restart: unless-stopped
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${ADMIN_PORT:-3002}:80"
-    environment:
-      - NODE_ENV=production
-      - TZ=Asia/Shanghai
-    volumes:
-      - ./.env:/etc/dujiao.env:ro
-      - ./nginx/admin-nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    networks:
-      - dujiao-network
-    depends_on:
-      - api
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # ---------------------------------------------------------------------------
-  # PostgreSQL 数据库
-  # 存储应用数据
-  # ---------------------------------------------------------------------------
-  dujiao-postgres:
-    image: postgres:15-alpine
-    pull_policy: always
-    container_name: dujiao-postgres
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=${DB_NAME:-dujiao_db}
-      - POSTGRES_USER=${DB_USER:-dujiao_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-dujiao_password}
-      - TZ=Asia/Shanghai
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - ./.env:/etc/dujiao.env:ro
-      - ./data/postgres:/var/lib/postgresql/data
-      # 如果有初始化 SQL 脚本，取消下面的注释
-      # - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-    networks:
-      - dujiao-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dujiao_user} -d ${DB_NAME:-dujiao_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------------------------------------
-  # Redis 缓存
-  # 用于缓存和会话存储
-  # ---------------------------------------------------------------------------
-  dujiao-redis:
-    image: redis:7-alpine
-    pull_policy: always
-    container_name: dujiao-redis
-    restart: unless-stopped
-    command: >
-      sh -c "redis-server
-      ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
-      --appendonly yes
-      --maxmemory 256mb
-      --maxmemory-policy allkeys-lru"
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${REDIS_PORT:-6379}:6379"
-    volumes:
-      - ./.env:/etc/dujiao.env:ro
-      - ./data/redis:/data
-    networks:
-      - dujiao-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+      - appstore-expand-net
+      - dujiaoka-next-net
 
 networks:
-  dujiao-network:
-    driver: bridge
-
-# 使用 bind mount 而非命名卷（官方推荐）
-# 数据存储在 ./data/ 目录下
+  appstore-expand-net:
+    name: dujiaoka-appstore-expand-net
+  dujiaoka-next-net:
+    external: true
+    name: dujiao-next_dujiao-network

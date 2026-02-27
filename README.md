@@ -1,131 +1,104 @@
-# Dujiaoka-Next Docker 服务器部署流程（宝塔版）
+# Dujiaoka-AppStore-Expand
 
-这份文档按你的实际操作路径编写：  
-`买服务器 -> 买域名 -> 宝塔安装 Docker/Nginx -> 上传源码 -> 一条命令启动 -> 域名+SSL`
+独立扩展项目（插件化），用于在 **Dujiaoka-Next 后台顶部导航** 增加“应用商店状态按钮”，并提供扩展面板入口。
 
-## 总流程图（图解）
+目标：
+- 独立镜像、独立 compose、独立配置
+- 不侵入 Dujiaoka-Next 核心业务代码
+- Dujiaoka-Next 升级后，插件可继续独立运行
 
-```mermaid
-flowchart TD
-    A["购买云服务器<br/>cloud.hfz.pw"] --> B["安装纯净版开心宝塔"]
-    B --> C["购买域名<br/>阿里云"]
-    C --> D["域名解析到服务器IP"]
-    D --> E["宝塔安装 Docker 与 Nginx"]
-    E --> F["上传并解压项目源码"]
-    F --> G["配置 .env"]
-    G --> H["终端执行 docker compose up -d --build"]
-    H --> I["宝塔 Docker 容器查看 admin 端口"]
-    I --> J["宝塔 Docker 网站绑定域名"]
-    J --> K["申请 SSL 并开启 HTTPS"]
-```
+## 已完成开发
 
-## 第 1 步：购买服务器并安装宝塔
+### 1. 独立可运行插件服务
 
-1. 在 `cloud.hfz.pw` 购买 Linux 云服务器（建议 Ubuntu 22.04）。
-2. 重装系统后，安装“纯净版开心宝塔”。
-3. 登录宝塔面板，完成初始化账号密码设置。
+已完成文件：
+- `docker-compose.yml`
+- `.env`
+- `app/Dockerfile`
+- `app/package.json`
+- `app/server.js`
+- `app/public/inject.js`
+- `integration/admin-nginx.patch.conf`
 
-## 第 2 步：购买域名并解析
-
-1. 在阿里云购买域名。
-2. 在域名解析里添加 A 记录，指向你的服务器公网 IP。
-3. 建议至少准备以下记录：
-- `@` -> 服务器 IP
-- `www` -> 服务器 IP
-- `admin` -> 服务器 IP（后台域名，可选）
-
-## 第 3 步：宝塔安装 Docker 和 Nginx
-
-1. 进入宝塔首页。
-2. 在应用商店安装 `Docker`。
-3. 在应用商店安装 `Nginx`。
-4. 安装完成后，确认 Docker 服务状态为运行中。
-
-## 第 4 步：上传并解压源码
-
-1. 从 Releases 下载源码包：  
-   [https://github.com/cnmbdb/Dujiaoka-Next-Docker/releases](https://github.com/cnmbdb/Dujiaoka-Next-Docker/releases)
-2. 在宝塔“文件”页面上传压缩包到站点目录（例如 `/www/wwwroot/dujiaoka-next`）。
-3. 解压源码到项目目录。
-4. 按你的要求，把项目目录权限设置为 `www / 777`。
-
-## 第 5 步：配置 .env 并启动
-
-1. 在项目根目录编辑唯一环境文件 `.env`。
-2. 在宝塔文件页进入该目录，点击顶部“终端”。
-3. 执行启动命令：
+启动方式（在本目录执行）：
 
 ```bash
 docker compose up -d --build
 ```
 
-`.env` 关键开关说明：
-- `HOST_BIND_IP=0.0.0.0`：允许通过 `服务器IP:端口` 直接访问（默认）
-- `HOST_BIND_IP=127.0.0.1`：仅本机可访问端口（推荐域名+Nginx+HTTPS后使用）
+### 2. 插件能力（当前版本）
 
-注意事项（重要）：
-1. 改完 `HOST_BIND_IP` 后，必须执行：
+- `GET /health`：健康检查接口
+- `GET /inject/appstore-expand.js`：后台注入脚本
+- `GET /panel`：扩展面板页面（抽屉 iframe 打开）
 
-```bash
-docker compose up -d --force-recreate
-```
+### 3. 后台按钮注入逻辑
 
-2. 当前 `.env` 里 `API_URL` 为 `http://127.0.0.1:3001`，上域名后必须改为公网 API 域名（例如 `https://api.xxx.com`），否则浏览器会请求回环地址。
-3. 当 `HOST_BIND_IP=127.0.0.1` 时，宝塔里“点端口直接用 IP 打开”会失效，这是正常现象；应通过域名反向代理访问。
+- 优先插入到“语言切换左侧”
+- 如果无法定位语言节点，自动降级到右上角浮动按钮
+- 按钮显示扩展状态：
+  - 绿色：扩展正常
+  - 红色：扩展异常
 
-## 第 6 步：查看容器并进入后台
+### 4. 接入 Dujiaoka-Next 方式（非侵入）
 
-1. 回到宝塔首页 -> Docker -> 容器。
-2. 找到 `admin` 容器。
-3. 查看端口映射并点击访问，使用 `服务器IP:端口` 打开后台。
+通过 Nginx 做两件事：
+1. 增加 `/appstore-expand/` 反向代理到插件容器
+2. 在 admin HTML 响应里注入脚本标签
 
-默认登录地址示例：
-- `http://服务器IP:3002/login`
+参考文件：
+- `integration/admin-nginx.patch.conf`
 
-默认账号密码：
-- 账号：`admin`
-- 密码：`admin123`
+## 当前联调验证结果（已通过）
 
-## 第 7 步：绑定域名并启用 HTTPS
+- 插件直连健康：`http://localhost:3010/health` 正常
+- 通过 admin 反代健康：`http://localhost:3002/appstore-expand/health` 正常
+- 注入脚本地址：`http://localhost:3002/appstore-expand/inject/appstore-expand.js` 正常返回
 
-1. 宝塔首页 -> Docker -> 网站。
-2. 添加网站并绑定你的域名。
-3. 在网站 SSL 页面申请证书（Let's Encrypt）。
-4. 开启强制 HTTPS。
-5. 回到项目 `.env`，把 `HOST_BIND_IP` 改为 `127.0.0.1`，关闭外部 `IP:端口` 访问：
+说明：当前本机环境已完成一次端到端联调。
 
-```bash
-HOST_BIND_IP=127.0.0.1
-docker compose up -d --force-recreate
-```
+## 部署说明（生产）
 
-## 常用运维命令
-
-首次或常规更新：
+1. 把 `Dujiaoka-AppStore-Expand` 文件夹放到服务器任意目录（建议与 Dujiaoka-Next 同级）
+2. 在插件目录执行：
 
 ```bash
 docker compose up -d --build
 ```
 
-如果改的是端口、镜像标签、容器启动参数等 Compose 级配置：
+3. 按 `integration/admin-nginx.patch.conf` 修改 Dujiaoka-Next 的 admin nginx 配置
+4. 重建 admin 容器：
 
 ```bash
-docker compose up -d --force-recreate
+cd /path/to/Dujiao-Next
+docker compose up -d --force-recreate admin
 ```
 
-查看状态：
+## 后续开发计划（Roadmap）
 
-```bash
-docker compose ps
-```
+### P1：可用性增强
+- 增加插件配置页（按钮文案、状态文案、面板地址）
+- 增加注入开关（仅 admin 登录后显示）
+- 增加版本与健康状态展示
 
-查看日志：
+### P2：应用商店核心功能
+- 应用列表（远程仓库/本地源）
+- 一键安装/卸载/启停
+- 扩展运行状态监控
 
-```bash
-docker compose logs -f
-```
+### P3：权限与隔离
+- 与 Dujiaoka-Next 管理员权限打通（最小权限原则）
+- 插件能力白名单（只开放允许的 API）
+- 操作审计日志
 
-## 备注
+### P4：发布与分发
+- 生成标准发布包（zip / release）
+- 版本升级策略（向后兼容）
+- 一键安装脚本（可选）
 
-- 本项目使用远程镜像部署。
-- 运行配置只使用一个 `.env` 文件（已挂载，可动态修改）。
+## 设计约束（长期保持）
+
+- 不直接改 Dujiaoka-Next 核心源码
+- 插件独立版本管理、独立发布
+- 接入层只保留在网关（Nginx）与注入脚本
+
