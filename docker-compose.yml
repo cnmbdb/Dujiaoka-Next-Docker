@@ -10,10 +10,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-api
     restart: unless-stopped
-    env_file:
-      - ./.env
     ports:
-      - "${API_PORT:-3001}:3000"
+      - "${HOST_BIND_IP:-0.0.0.0}:${API_PORT:-3001}:3000"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -49,10 +47,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-user
     restart: unless-stopped
-    env_file:
-      - ./.env
     ports:
-      - "${USER_PORT:-3000}:80"
+      - "${HOST_BIND_IP:-0.0.0.0}:${USER_PORT:-3000}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -81,10 +77,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-admin
     restart: unless-stopped
-    env_file:
-      - ./.env
     ports:
-      - "${ADMIN_PORT:-3002}:80"
+      - "${HOST_BIND_IP:-0.0.0.0}:${ADMIN_PORT:-3002}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -111,15 +105,13 @@ services:
     pull_policy: always
     container_name: dujiao-postgres
     restart: unless-stopped
-    env_file:
-      - ./.env
     environment:
       - POSTGRES_DB=${DB_NAME:-dujiao_db}
       - POSTGRES_USER=${DB_USER:-dujiao_user}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-dujiao_password}
       - TZ=Asia/Shanghai
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${HOST_BIND_IP:-0.0.0.0}:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - ./.env:/etc/dujiao.env:ro
       - ./data/postgres:/var/lib/postgresql/data
@@ -142,8 +134,6 @@ services:
     pull_policy: always
     container_name: dujiao-redis
     restart: unless-stopped
-    env_file:
-      - ./.env
     command: >
       sh -c "redis-server
       ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
@@ -151,7 +141,7 @@ services:
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru"
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${HOST_BIND_IP:-0.0.0.0}:${REDIS_PORT:-6379}:6379"
     volumes:
       - ./.env:/etc/dujiao.env:ro
       - ./data/redis:/data
