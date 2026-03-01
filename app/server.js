@@ -201,7 +201,8 @@ app.get('/inject/appstore-expand.js', (_req, res) => {
     fs.readFileSync(path.join(__dirname, 'public', 'inject.js'), 'utf8'));
 });
 
-app.get('/panel', (_req, res) => {
+app.get('/panel', (req, res) => {
+  const initialTheme = String(req.query.theme || '').toLowerCase() === 'light' ? 'light' : 'dark';
   const extensionCards = demoExtensions.map((item, idx) => ({
     ...item,
     iconUri: randomIconDataUri(`${item.name}-${idx}`, item.icon)
@@ -279,7 +280,7 @@ app.get('/panel', (_req, res) => {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.type('html');
-  res.send(`<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title><style>
+  res.send(`<!doctype html><html data-theme="${initialTheme}"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title><style>
   :root{color-scheme:dark}
   :root[data-theme="dark"]{
     color-scheme:dark;
@@ -346,6 +347,10 @@ app.get('/panel', (_req, res) => {
     --hero-dot-active:#1e293b;
     --hero-card-bg:rgba(255,255,255,.68);
     --hero-card-border:rgba(148,163,184,.35);
+    --hero-light-1:#f8fafc;
+    --hero-light-2:#e2e8f0;
+    --hero-light-3:#d7e3f4;
+    --hero-light-glow:rgba(100,116,139,.14);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -395,6 +400,21 @@ app.get('/panel', (_req, res) => {
     transform:translateX(0);
     pointer-events:auto;
     z-index:2;
+  }
+  [data-theme="light"] .hero-frame{
+    border-color:#e2e8f0;
+    box-shadow:0 12px 38px rgba(15,23,42,.10);
+  }
+  [data-theme="light"] .hero-slide{
+    background:
+      radial-gradient(110% 80% at 10% -10%,rgba(255,255,255,.70),transparent 55%),
+      radial-gradient(90% 70% at 90% 0%,var(--hero-light-glow),transparent 70%),
+      linear-gradient(128deg,var(--hero-light-1),var(--hero-light-2) 55%,var(--hero-light-3));
+  }
+  [data-theme="light"] .hero-slide::after{
+    background:
+      radial-gradient(circle at 0 100%,rgba(255,255,255,.24),transparent 60%),
+      linear-gradient(180deg,rgba(255,255,255,.12),rgba(241,245,249,.42));
   }
   .hero-content{
     position:relative;
@@ -474,6 +494,40 @@ app.get('/panel', (_req, res) => {
     transition:all .15s ease;
   }
   .hero-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.56);}
+  [data-theme="light"] .hero-content{
+    color:#0f172a;
+    border-color:#e2e8f0;
+    background:rgba(255,255,255,.86);
+    box-shadow:0 10px 26px rgba(15,23,42,.12);
+  }
+  [data-theme="light"] .hero-kicker{
+    border-color:#cbd5e1;
+    color:#0f172a;
+    background:rgba(255,255,255,.9);
+  }
+  [data-theme="light"] .hero-content h2{
+    color:#0f172a;
+    text-shadow:none;
+  }
+  [data-theme="light"] .hero-content p{
+    color:#1f2937;
+  }
+  [data-theme="light"] .hero-app{
+    border-color:#e2e8f0;
+    background:rgba(248,250,252,.9);
+  }
+  [data-theme="light"] .hero-app-copy strong{color:#0f172a;}
+  [data-theme="light"] .hero-app-copy span{color:#334155;}
+  [data-theme="light"] .hero-btn{
+    border-color:#cbd5e1;
+    color:#0f172a;
+    background:#ffffff;
+  }
+  [data-theme="light"] .hero-btn:hover{
+    border-color:#22c55e;
+    background:#f0fdf4;
+    color:#0f172a;
+  }
   .hero-arrow{
     position:absolute;
     top:50%;
@@ -642,6 +696,15 @@ app.get('/panel', (_req, res) => {
   <script>
   (function () {
     var root = document.documentElement;
+    var forcedTheme = null;
+
+    function hasThemeClass(el, theme) {
+      if (!el || !el.classList) return false;
+      return el.classList.contains(theme) ||
+        el.classList.contains(theme + '-theme') ||
+        el.classList.contains('theme-' + theme) ||
+        el.classList.contains('is-' + theme);
+    }
 
     function parseThemeFromDocument(doc) {
       if (!doc) return null;
@@ -654,11 +717,8 @@ app.get('/panel', (_req, res) => {
       if (/dark/i.test(attr)) return 'dark';
       if (/light/i.test(attr)) return 'light';
 
-      var cls = '';
-      if (de) cls += ' ' + (de.className || '');
-      if (body) cls += ' ' + (body.className || '');
-      if (/\bdark\b/i.test(cls)) return 'dark';
-      if (/\blight\b/i.test(cls)) return 'light';
+      if (hasThemeClass(de, 'dark') || hasThemeClass(body, 'dark')) return 'dark';
+      if (hasThemeClass(de, 'light') || hasThemeClass(body, 'light')) return 'light';
 
       try {
         var ref = body || de;
@@ -678,6 +738,7 @@ app.get('/panel', (_req, res) => {
     }
 
     function detectTheme() {
+      if (forcedTheme === 'light' || forcedTheme === 'dark') return forcedTheme;
       try {
         if (window.parent && window.parent !== window) {
           var t = parseThemeFromDocument(window.parent.document);
@@ -690,6 +751,17 @@ app.get('/panel', (_req, res) => {
       }
       return 'light';
     }
+
+    window.addEventListener('message', function (evt) {
+      try {
+        if (evt.origin !== window.location.origin) return;
+        var data = evt.data || {};
+        if (data.type !== 'DJ_APPSTORE_THEME') return;
+        if (data.theme !== 'light' && data.theme !== 'dark') return;
+        forcedTheme = data.theme;
+        root.setAttribute('data-theme', forcedTheme);
+      } catch (_ignored) {}
+    });
 
     function initHeroCarousel() {
       var carousel = document.querySelector('[data-hero-carousel]');
