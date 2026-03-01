@@ -18,6 +18,7 @@
   var pulseStartTs = Date.now();
   var panelToggleBusy = false;
   var lastPanelOpenAt = 0;
+  var panelThemeSyncTimer = null;
 
   function qs(sel) { return document.querySelector(sel); }
   function qsa(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
@@ -30,6 +31,49 @@
     return s.display !== 'none' && s.visibility !== 'hidden' && s.opacity !== '0';
   }
 
+  function hasThemeClass(el, theme) {
+    if (!el || !el.classList) return false;
+    return el.classList.contains(theme) ||
+      el.classList.contains(theme + '-theme') ||
+      el.classList.contains('theme-' + theme) ||
+      el.classList.contains('is-' + theme);
+  }
+
+  function detectHostTheme() {
+    var de = document.documentElement;
+    var body = document.body;
+    var attr = '';
+    if (de) attr += ' ' + (de.getAttribute('data-theme') || '');
+    if (body) attr += ' ' + (body.getAttribute('data-theme') || '');
+    if (/dark/i.test(attr)) return 'dark';
+    if (/light/i.test(attr)) return 'light';
+
+    if (hasThemeClass(de, 'dark') || hasThemeClass(body, 'dark')) return 'dark';
+    if (hasThemeClass(de, 'light') || hasThemeClass(body, 'light')) return 'light';
+
+    try {
+      var ref = body || de;
+      if (ref) {
+        var bg = window.getComputedStyle(ref).backgroundColor || '';
+        var nums = bg.match(/\d+/g);
+        if (nums && nums.length >= 3) {
+          var r = Number(nums[0]);
+          var g = Number(nums[1]);
+          var b = Number(nums[2]);
+          var luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          return luma < 0.58 ? 'dark' : 'light';
+        }
+      }
+    } catch (_ignored) {}
+
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+
+  function applyButtonTheme(btn) {
+    if (!btn) return;
+    btn.setAttribute('data-theme', detectHostTheme());
+  }
+
   function ensureStyle() {
     if (qs('#dj-appstore-expand-style')) return;
     var style = document.createElement('style');
@@ -38,6 +82,9 @@
       '#dj-appstore-expand-btn{height:34px;padding:0 13px;border:1.5px solid rgba(34,197,94,.14);background:linear-gradient(135deg,rgba(15,23,42,.75),rgba(15,23,42,.5));background-size:180% 180%;background-position:0% 50%;color:hsl(var(--foreground, 220 15% 90%));border-radius:9px;display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:12px;line-height:1;white-space:nowrap;transition:all .2s ease;will-change:box-shadow,border-color,background-position,transform;transform:translateZ(0);animation:dj-appstore-border-shift 3.2s linear infinite;pointer-events:auto;touch-action:manipulation;user-select:none;-webkit-tap-highlight-color:transparent;}' +
       '#dj-appstore-expand-btn:hover{border-color:rgba(74,222,128,.7);background:linear-gradient(135deg,rgba(22,36,56,.9),rgba(20,34,53,.65));}' +
       '#dj-appstore-expand-btn.is-open{border-color:rgba(74,222,128,.8);background:linear-gradient(135deg,rgba(22,36,56,.95),rgba(20,34,53,.75));}' +
+      '#dj-appstore-expand-btn[data-theme="light"]{background:#ffffff;color:#0f172a;border-color:rgba(148,163,184,.45);box-shadow:0 1px 2px rgba(15,23,42,.08);}' +
+      '#dj-appstore-expand-btn[data-theme="light"]:hover{border-color:rgba(74,222,128,.72);background:#f7fafc;}' +
+      '#dj-appstore-expand-btn[data-theme="light"].is-open{border-color:rgba(34,197,94,.78);background:#f0fdf4;}' +
       '#dj-appstore-expand-btn:focus-visible{outline:none;box-shadow:0 0 0 1px rgba(74,222,128,.82),0 0 14px rgba(34,197,94,.35);}' +
       '#dj-appstore-expand-btn .dj-appstore-expand-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;color:currentColor;opacity:.98;}' +
       '@keyframes dj-appstore-border-shift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}' +
@@ -51,6 +98,12 @@
       '#dj-appstore-expand-panel .dj-appstore-expand-panel-close{width:26px;height:26px;border:1px solid #2d3440;border-radius:7px;background:#0f1724;color:hsl(var(--foreground, 220 15% 90%));display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s ease;}' +
       '#dj-appstore-expand-panel .dj-appstore-expand-panel-close:hover{border-color:rgba(74,222,128,.72);color:#ffffff;background:#152031;}' +
       '#dj-appstore-expand-panel .dj-appstore-expand-panel-close:focus-visible{outline:none;box-shadow:0 0 0 1px rgba(74,222,128,.82),0 0 12px rgba(34,197,94,.24);}' +
+      '#dj-appstore-expand-backdrop[data-theme="light"]{background:rgba(255,255,255,.55);backdrop-filter:blur(2px);}' +
+      '#dj-appstore-expand-panel[data-theme="light"]{border-color:#d7e1ef;background:#ffffff;box-shadow:0 18px 56px rgba(15,23,42,.12);}' +
+      '#dj-appstore-expand-panel[data-theme="light"] .dj-appstore-expand-panel-head{background:#f8fbff;border-bottom-color:#d7e1ef;}' +
+      '#dj-appstore-expand-panel[data-theme="light"] .dj-appstore-expand-panel-title{color:#0f172a;}' +
+      '#dj-appstore-expand-panel[data-theme="light"] .dj-appstore-expand-panel-close{border-color:#cbd5e1;background:#ffffff;color:#0f172a;}' +
+      '#dj-appstore-expand-panel[data-theme="light"] .dj-appstore-expand-panel-close:hover{border-color:#22c55e;background:#f0fdf4;color:#0f172a;}' +
       '#dj-appstore-expand-panel .dj-appstore-expand-frame{width:100%;height:100%;flex:1;border:0;background:#0f1115;}' +
       '@media (max-width:720px){#dj-appstore-expand-panel{left:8px;top:10px;transform:none;width:calc(100vw - 16px);height:calc(100vh - 20px);border-radius:12px;}#dj-appstore-expand-panel.is-open{transform:none;}}';
     document.head.appendChild(style);
@@ -62,6 +115,7 @@
     pulseTimer = setInterval(function () {
       var btn = qs('#dj-appstore-expand-btn');
       if (!btn || !isVisible(btn)) return;
+      applyButtonTheme(btn);
 
       // 0 -> 亮 -> 0，从接近 0 光强开始的平滑呼吸
       var period = 3.8;
@@ -284,7 +338,10 @@
 
       var ifr = document.createElement('iframe');
       ifr.className = 'dj-appstore-expand-frame';
-      ifr.src = panelUrl;
+      var iframeUrl = new URL(panelUrl, window.location.origin);
+      var initialTheme = detectHostTheme();
+      iframeUrl.searchParams.set('theme', initialTheme);
+      ifr.src = iframeUrl.toString();
       backdrop.onclick = function () {
         if (Date.now() - lastPanelOpenAt < 180) return;
         closePanel();
@@ -294,6 +351,25 @@
       panel.appendChild(ifr);
       document.body.appendChild(backdrop);
       document.body.appendChild(panel);
+      var syncTheme = function () {
+        var theme = detectHostTheme();
+        panel.setAttribute('data-theme', theme || initialTheme);
+        backdrop.setAttribute('data-theme', theme || initialTheme);
+        try {
+          if (!ifr.contentWindow) return;
+          ifr.contentWindow.postMessage({
+            type: 'DJ_APPSTORE_THEME',
+            theme: theme || initialTheme
+          }, window.location.origin);
+        } catch (_ignored) {}
+      };
+      ifr.addEventListener('load', function () {
+        syncTheme();
+        setTimeout(syncTheme, 120);
+      });
+      if (panelThemeSyncTimer) clearInterval(panelThemeSyncTimer);
+      panelThemeSyncTimer = setInterval(syncTheme, 700);
+      syncTheme();
       requestAnimationFrame(function () {
         backdrop.classList.add('is-open');
         panel.classList.add('is-open');
@@ -317,6 +393,10 @@
     if (backdrop) backdrop.remove();
     var btn = qs('#dj-appstore-expand-btn');
     if (btn) btn.classList.remove('is-open');
+    if (panelThemeSyncTimer) {
+      clearInterval(panelThemeSyncTimer);
+      panelThemeSyncTimer = null;
+    }
   }
 
   function renderStatus() {
@@ -374,6 +454,7 @@
       ensureStyle();
       ensurePulseDriver();
       var btn = qs('#dj-appstore-expand-btn') || createBtn();
+      applyButtonTheme(btn);
       var langNode = pickLanguageNode();
       var group = null;
 
