@@ -1,0 +1,13 @@
+{
+  "name": "dujiaoka-appstore-expand",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dujiaoka AppStore Expand API container",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
