@@ -2,15 +2,16 @@ services:
   # ---------------------------------------------------------------------------
   # API 服务
   # 提供后端 API 接口
-  # 内部网络访问，不暴露到公网
+  # 访问地址: http://your-server-ip:3001
+  # 镜像: dujiaonext/api:${TAG}
   # ---------------------------------------------------------------------------
   api:
     image: dujiaonext/api:${TAG:-latest}
     pull_policy: always
     container_name: dujiao-next-api
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${API_PORT:-3001}:3000"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -38,15 +39,16 @@ services:
   # ---------------------------------------------------------------------------
   # User 服务（用户前台）
   # 提供用户前端界面
-  # Cloudflare Tunnel 直连容器 80 端口
+  # 访问地址: http://your-server-ip:3000
+  # 镜像: dujiaonext/user:${TAG}
   # ---------------------------------------------------------------------------
   user:
     image: dujiaonext/user:${TAG:-latest}
     pull_policy: always
     container_name: dujiao-next-user
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${USER_PORT:-3000}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -67,15 +69,16 @@ services:
   # ---------------------------------------------------------------------------
   # Admin 服务（后台管理）
   # 提供后台管理界面
-  # Cloudflare Tunnel 直连容器 80 端口
+  # 访问地址: http://your-server-ip:3002
+  # 镜像: dujiaonext/admin:${TAG}
   # ---------------------------------------------------------------------------
   admin:
     image: dujiaonext/admin:${TAG:-latest}
     pull_policy: always
     container_name: dujiao-next-admin
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${ADMIN_PORT:-3002}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -94,36 +97,8 @@ services:
       start_period: 40s
 
   # ---------------------------------------------------------------------------
-  # AppStore Expand（远程镜像）
-  # 内部网络访问
-  # ---------------------------------------------------------------------------
-  appstore-expand:
-    image: ${APPSTORE_IMAGE:-hfdoker2333/dujiaoka-appstore-expand}:${APPSTORE_TAG:-latest}
-    pull_policy: always
-    container_name: dujiaoka-appstore-expand
-    restart: unless-stopped
-    expose:
-      - "3010"
-    environment:
-      - PORT=3010
-      - APPSTORE_TITLE=${APPSTORE_TITLE:-Dujiaoka AppStore Expand}
-      - APPSTORE_BUTTON_TEXT=${APPSTORE_BUTTON_TEXT:-扩展应用商店}
-      - APPSTORE_STATUS_TEXT=${APPSTORE_STATUS_TEXT:-应用商店扩展开启}
-      - APPSTORE_FRONTEND_URL=${APPSTORE_FRONTEND_URL:-https://ets.txsw.top}
-      - APPSTORE_FRONTEND_LOGIN_PATH=${APPSTORE_FRONTEND_LOGIN_PATH:-/login}
-      - APPSTORE_WORKDIR=/app/data
-    volumes:
-      - ./data/appstore-expand:/app/data
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - dujiao-network
-    depends_on:
-      - admin
-
-  # ---------------------------------------------------------------------------
   # PostgreSQL 数据库
-  # 内部网络访问，不暴露端口
+  # 存储应用数据
   # ---------------------------------------------------------------------------
   dujiao-postgres:
     image: postgres:15-alpine
@@ -135,10 +110,13 @@ services:
       - POSTGRES_USER=${DB_USER:-dujiao_user}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-dujiao_password}
       - TZ=Asia/Shanghai
-    expose:
-      - "5432"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${POSTGRES_PORT:-5432}:5432"
     volumes:
+      - ./.env:/etc/dujiao.env:ro
       - ./data/postgres:/var/lib/postgresql/data
+      # 如果有初始化 SQL 脚本，取消下面的注释
+      # - ./docker/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
       - dujiao-network
     healthcheck:
@@ -149,7 +127,7 @@ services:
 
   # ---------------------------------------------------------------------------
   # Redis 缓存
-  # 内部网络访问，不暴露端口
+  # 用于缓存和会话存储
   # ---------------------------------------------------------------------------
   dujiao-redis:
     image: redis:7-alpine
@@ -162,9 +140,10 @@ services:
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru"
-    expose:
-      - "6379"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${REDIS_PORT:-6379}:6379"
     volumes:
+      - ./.env:/etc/dujiao.env:ro
       - ./data/redis:/data
     networks:
       - dujiao-network
@@ -174,27 +153,9 @@ services:
       timeout: 3s
       retries: 5
 
-  # ---------------------------------------------------------------------------
-  # Cloudflare Tunnel
-  # 将 Docker 内部网络服务通过 Cloudflare Tunnel 暴露到公网
-  # CLOUDFLARE_TUNNEL_ENABLED=true/false 控制开关（.env 第 21 行）
-  # TUNNEL_TOKEN 来自 .env（第 22 行）
-  # 开启 Tunnel：docker compose --profile tunnel up -d
-  # 关闭 Tunnel：docker compose up -d（不加 --profile）
-  # ---------------------------------------------------------------------------
-  cloudflare-tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: dujiao-cloudflare-tunnel
-    restart: unless-stopped
-    profiles:
-      - tunnel
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
-    networks:
-      - dujiao-network
-    depends_on:
-      - user
-      - admin
-
 networks:
   dujiao-network:
     driver: bridge
+
+# 使用 bind mount 而非命名卷（官方推荐）
+# 数据存储在 ./data/ 目录下
