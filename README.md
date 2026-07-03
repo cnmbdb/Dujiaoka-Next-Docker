@@ -158,7 +158,7 @@ docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml -f 
 ```bash
 CLOUDFLARE_TUNNEL_ENABLED=true
 COMPOSE_PROFILES=tunnel
-TUNNEL_TOKEN=你的 Cloudflare Tunnel Token
+DUJIAO_TUNNEL_TOKEN=你的 Cloudflare Tunnel Token
 ```
 
 然后正常执行即可：

@@ -155,6 +155,7 @@ services:
   # ---------------------------------------------------------------------------
   # Cloudflare Tunnel（可选）
   # 开启方式：在 .env 设置 COMPOSE_PROFILES=tunnel 后执行 docker compose up -d
+  # 使用项目专属 DUJIAO_TUNNEL_TOKEN，避免被其他项目的 TUNNEL_TOKEN 覆盖
   # ---------------------------------------------------------------------------
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest
@@ -162,7 +163,9 @@ services:
     restart: unless-stopped
     profiles:
       - tunnel
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${DUJIAO_TUNNEL_TOKEN:?Set DUJIAO_TUNNEL_TOKEN in .env}
+    command: tunnel --no-autoupdate run
     networks:
       - dujiao-network
     depends_on:
