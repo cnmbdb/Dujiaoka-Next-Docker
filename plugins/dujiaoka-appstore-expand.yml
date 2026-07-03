@@ -1,0 +1,73 @@
+services:
+  admin:
+    configs:
+      - source: appstore_expand_admin_locations
+        target: /etc/nginx/conf.d/appstore-expand.locations
+      - source: appstore_expand_admin_inject
+        target: /etc/nginx/conf.d/appstore-expand.inject
+    depends_on:
+      - appstore-expand
+
+  user:
+    configs:
+      - source: appstore_expand_user_locations
+        target: /etc/nginx/conf.d/appstore-expand.locations
+    depends_on:
+      - appstore-expand
+
+  cloudflare-tunnel:
+    depends_on:
+      - appstore-expand
+
+  appstore-expand:
+    image: ${APPSTORE_IMAGE:-hfdoker2333/dujiaoka-appstore-expand}:${APPSTORE_TAG:-latest}
+    pull_policy: always
+    container_name: dujiaoka-appstore-expand
+    restart: unless-stopped
+    expose:
+      - "3010"
+    environment:
+      - PORT=3010
+      - APPSTORE_TITLE=${APPSTORE_TITLE:-Dujiaoka AppStore Expand}
+      - APPSTORE_BUTTON_TEXT=${APPSTORE_BUTTON_TEXT:-扩展应用商店}
+      - APPSTORE_STATUS_TEXT=${APPSTORE_STATUS_TEXT:-应用商店扩展开启}
+      - APPSTORE_FRONTEND_URL=${APPSTORE_FRONTEND_URL:-https://ets.txsw.top}
+      - APPSTORE_FRONTEND_LOGIN_PATH=${APPSTORE_FRONTEND_LOGIN_PATH:-/login}
+      - APPSTORE_WORKDIR=/app/data
+    volumes:
+      - ./data/appstore-expand:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - dujiao-network
+
+configs:
+  appstore_expand_admin_locations:
+    content: |
+      location /appstore-expand/ {
+          proxy_pass http://appstore-expand:3010/;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 60s;
+          proxy_read_timeout 60s;
+      }
+
+  appstore_expand_user_locations:
+    content: |
+      location /appstore-expand/ {
+          proxy_pass http://appstore-expand:3010/;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 60s;
+          proxy_read_timeout 60s;
+      }
+
+  appstore_expand_admin_inject:
+    content: |
+      sub_filter '</head>' '<script src="/appstore-expand/inject/appstore-expand.js?v=prod"></script></head>';

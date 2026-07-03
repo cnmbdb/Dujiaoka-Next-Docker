@@ -56,7 +56,7 @@ flowchart TD
 3. 执行启动命令：
 
 ```bash
-docker compose up -d --build
+docker compose up -d
 ```
 
 `.env` 关键开关说明：
@@ -99,7 +99,8 @@ docker compose up -d --force-recreate
 首次或常规更新：
 
 ```bash
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 如果改的是端口、镜像标签、容器启动参数等 Compose 级配置：
@@ -119,6 +120,34 @@ docker compose ps
 ```bash
 docker compose logs -f
 ```
+
+## 可选插件
+
+核心项目只保留必要服务。`dujiaoka-appstore-expand` 和 `dujiao-bot` 作为可选插件提供，默认不会污染主 `docker-compose.yml`。
+
+启用应用商店扩展：
+
+```bash
+docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml up -d --force-recreate
+```
+
+启用 Dujiao Bot：
+
+```bash
+docker compose -f docker-compose.yml -f plugins/dujiao-bot.yml up -d --force-recreate
+```
+
+同时启用两个插件：
+
+```bash
+docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml -f plugins/dujiao-bot.yml up -d --force-recreate
+```
+
+插件说明：
+- `plugins/dujiaoka-appstore-expand.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
+- `plugins/dujiao-bot.yml`：包含 Dujiao Bot 服务、后台代理路由、后台注入脚本。
+- 其他用户只需要保留主项目文件，再额外放入需要的插件 yml 文件，按上面的 overlay 命令重构容器即可。
+- 插件不开放宿主机端口，仍然通过 Cloudflare Tunnel 或 Docker 内部网络访问。
 
 ## Cloudflare Tunnel
 

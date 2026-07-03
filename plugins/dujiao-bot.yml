@@ -1,0 +1,93 @@
+services:
+  admin:
+    configs:
+      - source: dujiao_bot_admin_locations
+        target: /etc/nginx/conf.d/dujiao-bot.locations
+      - source: dujiao_bot_admin_inject
+        target: /etc/nginx/conf.d/dujiao-bot.inject
+    depends_on:
+      - dujiao-bot
+
+  cloudflare-tunnel:
+    depends_on:
+      - dujiao-bot
+
+  dujiao-bot:
+    image: ${DUJIAO_BOT_IMAGE:-ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot}:${DUJIAO_BOT_TAG:-latest}
+    pull_policy: always
+    container_name: dujiao-bot
+    restart: unless-stopped
+    expose:
+      - "3020"
+    environment:
+      - TZ=Asia/Shanghai
+      - DB_HOST=dujiao-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-dujiao_db}
+      - DB_USER=${DB_USER:-dujiao_user}
+      - DB_PASSWORD=${DB_PASSWORD:-dujiao_password}
+      - REDIS_HOST=dujiao-redis
+      - REDIS_PORT=6379
+      - API_INTERNAL_URL=http://api:3000
+    volumes:
+      - ./config/config.yml:/app/config.yml:ro
+      - ./data/logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3020/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dujiao-network
+    depends_on:
+      - api
+
+configs:
+  dujiao_bot_admin_locations:
+    content: |
+      location ^~ /api/bot-settings/ {
+          proxy_pass http://dujiao-bot:3020/api/bot-settings/;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 60s;
+          proxy_read_timeout 60s;
+      }
+
+      location = /dujiao-bot/panel {
+          proxy_pass http://dujiao-bot:3020/panel;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          add_header X-Frame-Options "SAMEORIGIN";
+      }
+
+      location ^~ /dujiao-bot/static/ {
+          proxy_pass http://dujiao-bot:3020/static/;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 60s;
+          proxy_read_timeout 60s;
+      }
+
+      location ^~ /dujiao-bot/ {
+          proxy_pass http://dujiao-bot:3020/;
+          proxy_set_header Host $$host;
+          proxy_set_header X-Real-IP $$remote_addr;
+          proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $$scheme;
+          proxy_connect_timeout 60s;
+          proxy_send_timeout 60s;
+          proxy_read_timeout 60s;
+      }
+
+  dujiao_bot_admin_inject:
+    content: |
+      sub_filter '<body>' '<body><script src="/dujiao-bot/static/inject.js?v=prod"></script>';
