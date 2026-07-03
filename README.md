@@ -145,7 +145,9 @@ docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml -f 
 
 插件说明：
 - `plugins/dujiaoka-appstore-expand.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
-- `plugins/dujiao-bot.yml`：包含 Dujiao Bot 服务、后台代理路由、后台注入脚本。
+- `plugins/dujiao-bot.yml`：包含 Dujiao Bot API 服务、Bot 后台静态页面服务、后台代理路由、后台注入脚本。
+- Bot 后台静态页面直接来自 `ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot` 镜像内置的 `admin-panel/out`，生产部署不需要挂载开发源码。
+- AppStore Expand 默认使用 `ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand`，可通过 `.env` 的 `APPSTORE_IMAGE` / `APPSTORE_TAG` 覆盖。
 - 其他用户只需要保留主项目文件，再额外放入需要的插件 yml 文件，按上面的 overlay 命令重构容器即可。
 - 插件不开放宿主机端口，仍然通过 Cloudflare Tunnel 或 Docker 内部网络访问。
 

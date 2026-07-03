@@ -20,7 +20,7 @@ services:
       - appstore-expand
 
   appstore-expand:
-    image: ${APPSTORE_IMAGE:-hfdoker2333/dujiaoka-appstore-expand}:${APPSTORE_TAG:-latest}
+    image: ${APPSTORE_IMAGE:-ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand}:${APPSTORE_TAG:-latest}
     pull_policy: always
     container_name: dujiaoka-appstore-expand
     restart: unless-stopped
