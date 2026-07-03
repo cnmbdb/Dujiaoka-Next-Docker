@@ -10,14 +10,19 @@ services:
     pull_policy: always
     container_name: dujiao-next-api
     restart: unless-stopped
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${API_PORT:-3001}:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
+      - DB_HOST=dujiao-postgres
+      - DB_PORT=5432
+      - REDIS_HOST=dujiao-redis
+      - REDIS_PORT=6379
       - DJ_DEFAULT_ADMIN_USERNAME=${DJ_DEFAULT_ADMIN_USERNAME:-admin}
       - DJ_DEFAULT_ADMIN_PASSWORD=${DJ_DEFAULT_ADMIN_PASSWORD:-admin123}
     volumes:
+      - ./config/config.yml:/app/config.yml:ro
       - ./data/uploads:/app/public/uploads
       - ./data/logs:/app/logs
     networks:
@@ -28,7 +33,7 @@ services:
       dujiao-redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/ || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -45,8 +50,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-user
     restart: unless-stopped
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${USER_PORT:-3000}:80"
+    expose:
+      - "80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -55,7 +60,7 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:80/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -72,8 +77,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-admin
     restart: unless-stopped
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${ADMIN_PORT:-3002}:80"
+    expose:
+      - "80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -82,7 +87,7 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:80/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -125,8 +130,23 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
+      - DB_HOST=dujiao-postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-dujiao_db}
+      - DB_USER=${DB_USER:-dujiao_user}
+      - DB_PASSWORD=${DB_PASSWORD:-dujiao_password}
+      - REDIS_HOST=dujiao-redis
+      - REDIS_PORT=6379
+      - API_INTERNAL_URL=http://api:3000
     volumes:
+      - ./config/config.yml:/app/config.yml:ro
       - ./data/logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3020/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - dujiao-network
     depends_on:
@@ -146,8 +166,8 @@ services:
       - POSTGRES_USER=${DB_USER:-dujiao_user}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-dujiao_password}
       - TZ=Asia/Shanghai
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${POSTGRES_PORT:-5432}:5432"
+    expose:
+      - "5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       # 如果有初始化 SQL 脚本，取消下面的注释
@@ -175,8 +195,8 @@ services:
       --appendonly yes
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru"
-    ports:
-      - "${HOST_BIND_IP:-0.0.0.0}:${REDIS_PORT:-6379}:6379"
+    expose:
+      - "6379"
     volumes:
       - ./data/redis:/data
     networks:
