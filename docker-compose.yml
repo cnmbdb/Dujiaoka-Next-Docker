@@ -189,7 +189,7 @@ services:
 
   # ---------------------------------------------------------------------------
   # Cloudflare Tunnel（可选）
-  # 开启方式：docker compose --profile tunnel up -d
+  # 开启方式：在 .env 设置 COMPOSE_PROFILES=tunnel 后执行 docker compose up -d
   # ---------------------------------------------------------------------------
   cloudflare-tunnel:
     image: cloudflare/cloudflared:latest

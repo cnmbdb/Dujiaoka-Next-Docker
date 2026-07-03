@@ -125,6 +125,23 @@ docker compose ps
 docker compose logs -f
 ```
 
+## Cloudflare Tunnel
+
+如果需要默认拉取并启动 `cloudflare-tunnel`，在 `.env` 中同时设置：
+
+```bash
+CLOUDFLARE_TUNNEL_ENABLED=true
+COMPOSE_PROFILES=tunnel
+TUNNEL_TOKEN=你的 Cloudflare Tunnel Token
+```
+
+然后正常执行即可：
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
 ## 备注
 
 - 本项目使用远程镜像部署。
