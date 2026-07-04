@@ -150,12 +150,6 @@ plugins/
 启用应用商店扩展：
 
 ```bash
-docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml up -d --force-recreate
-```
-
-新目录方式：
-
-```bash
 docker compose \
   --env-file .env \
   --env-file plugins/appstore-expand/.env \
@@ -167,12 +161,6 @@ docker compose \
 启用 Dujiao Bot：
 
 ```bash
-docker compose -f docker-compose.yml -f plugins/dujiao-bot.yml up -d --force-recreate
-```
-
-新目录方式：
-
-```bash
 docker compose \
   --env-file .env \
   --env-file plugins/dujiao-bot/.env \
@@ -182,12 +170,6 @@ docker compose \
 ```
 
 同时启用两个插件：
-
-```bash
-docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml -f plugins/dujiao-bot.yml up -d --force-recreate
-```
-
-新目录方式：
 
 ```bash
 docker compose \
@@ -208,7 +190,6 @@ docker compose \
 - `dujiao-bot-migrate` 会在 Bot 主服务启动前执行镜像内置 SQL 迁移，自动创建 `dujiao_bot_*` 表。
 - Bot 后台静态页面直接来自 `ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot` 镜像内置的 `admin-panel/out`，生产部署不需要挂载开发源码。
 - AppStore Expand 默认使用 `ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand`，可通过 `plugins/appstore-expand/.env` 的 `APPSTORE_IMAGE` / `APPSTORE_TAG` 覆盖。
-- 旧的 `plugins/dujiaoka-appstore-expand.yml` 和 `plugins/dujiao-bot.yml` 仅作为兼容入口保留；新部署建议使用插件文件夹里的 compose 文件。
 - 插件不开放宿主机端口，仍然通过 Cloudflare Tunnel 或 Docker 内部网络访问。
 
 ## Cloudflare Tunnel

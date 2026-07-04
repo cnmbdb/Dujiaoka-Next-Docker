@@ -1,6 +1,0 @@
-# Compatibility wrapper.
-# New installs should use:
-#   -f plugins/dujiao-bot/docker-compose.yml
-
-include:
-  - path: ./plugins/dujiao-bot/docker-compose.yml

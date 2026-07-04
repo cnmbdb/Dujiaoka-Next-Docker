@@ -1,6 +1,0 @@
-# Compatibility wrapper.
-# New installs should use:
-#   -f plugins/appstore-expand/docker-compose.yml
-
-include:
-  - path: ./plugins/appstore-expand/docker-compose.yml
