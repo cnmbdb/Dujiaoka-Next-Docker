@@ -28,9 +28,9 @@ services:
       - path: ./plugins/appstore-expand/.env
         required: false
     expose:
-      - "3010"
+      - "${APPSTORE_PORT:-3010}"
     environment:
-      - PORT=3010
+      - PORT=${APPSTORE_PORT:-3010}
       - APPSTORE_TITLE=${APPSTORE_TITLE:-Dujiaoka AppStore Expand}
       - APPSTORE_BUTTON_TEXT=${APPSTORE_BUTTON_TEXT:-扩展应用商店}
       - APPSTORE_STATUS_TEXT=${APPSTORE_STATUS_TEXT:-应用商店扩展开启}
@@ -43,12 +43,18 @@ services:
       - "host.docker.internal:host-gateway"
     networks:
       - dujiao-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:${APPSTORE_PORT:-3010}/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 configs:
   appstore_expand_admin_locations:
     content: |
       location /appstore-expand/ {
-          proxy_pass http://appstore-expand:3010/;
+          proxy_pass http://appstore-expand:${APPSTORE_PORT:-3010}/;
           proxy_set_header Host $$host;
           proxy_set_header X-Real-IP $$remote_addr;
           proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;
@@ -61,7 +67,7 @@ configs:
   appstore_expand_user_locations:
     content: |
       location /appstore-expand/ {
-          proxy_pass http://appstore-expand:3010/;
+          proxy_pass http://appstore-expand:${APPSTORE_PORT:-3010}/;
           proxy_set_header Host $$host;
           proxy_set_header X-Real-IP $$remote_addr;
           proxy_set_header X-Forwarded-For $$proxy_add_x_forwarded_for;

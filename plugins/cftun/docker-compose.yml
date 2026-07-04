@@ -1,0 +1,15 @@
+services:
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:${CFTUN_TAG:-latest}
+    pull_policy: always
+    container_name: dujiao-cloudflare-tunnel
+    restart: unless-stopped
+    environment:
+      - TUNNEL_TOKEN=${DUJIAO_CFTUN_TOKEN:?Set DUJIAO_CFTUN_TOKEN in plugins/cftun/.env}
+    command: tunnel --no-autoupdate run
+    networks:
+      - dujiao-network
+    depends_on:
+      - user
+      - admin
+      - api

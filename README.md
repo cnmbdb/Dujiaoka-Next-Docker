@@ -57,9 +57,10 @@ flowchart TD
 ```bash
 cp plugins/appstore-expand/.env.example plugins/appstore-expand/.env
 cp plugins/dujiao-bot/.env.example plugins/dujiao-bot/.env
+cp plugins/cftun/.env.example plugins/cftun/.env
 ```
 
-插件配置各自放在对应插件目录里，主 `.env` 只保留核心服务和 Cloudflare Tunnel 配置。
+插件配置各自放在对应插件目录里，主 `.env` 只保留核心服务配置。
 3. 在宝塔文件页进入该目录，点击顶部“终端”。
 4. 执行启动命令：
 
@@ -68,8 +69,8 @@ docker compose up -d
 ```
 
 `.env` 关键开关说明：
-- 默认生产部署不映射宿主机端口，外部访问走 Cloudflare Tunnel。
-- `COMPOSE_PROFILES=tunnel`：默认拉取并启动 Cloudflare Tunnel 服务。
+- 默认生产部署不映射宿主机端口。
+- Cloudflare Tunnel 作为可选插件放在 `plugins/cftun/`，公网域名和 Tunnel Token 不放主 `.env`。
 
 注意事项（重要）：
 1. 改完 `HOST_BIND_IP` 后，必须执行：
@@ -135,6 +136,10 @@ docker compose logs -f
 
 ```text
 plugins/
+  cftun/
+    docker-compose.yml
+    .env.example
+    .env
   appstore-expand/
     docker-compose.yml
     .env.example
@@ -169,7 +174,7 @@ docker compose \
   up -d --force-recreate
 ```
 
-同时启用两个插件：
+同时启用应用商店扩展和 Dujiao Bot：
 
 ```bash
 docker compose \
@@ -182,7 +187,35 @@ docker compose \
   up -d --force-recreate
 ```
 
+启用 Cloudflare Tunnel：
+
+```bash
+docker compose \
+  --env-file .env \
+  --env-file plugins/cftun/.env \
+  -f docker-compose.yml \
+  -f plugins/cftun/docker-compose.yml \
+  up -d --force-recreate
+```
+
+同时启用 Cloudflare Tunnel、应用商店扩展和 Dujiao Bot：
+
+```bash
+docker compose \
+  --env-file .env \
+  --env-file plugins/cftun/.env \
+  --env-file plugins/appstore-expand/.env \
+  --env-file plugins/dujiao-bot/.env \
+  -f docker-compose.yml \
+  -f plugins/cftun/docker-compose.yml \
+  -f plugins/appstore-expand/docker-compose.yml \
+  -f plugins/dujiao-bot/docker-compose.yml \
+  up -d --force-recreate
+```
+
 插件说明：
+- `plugins/cftun/docker-compose.yml`：包含 Cloudflare Tunnel 服务。
+- `plugins/cftun/.env`：Cloudflare Tunnel Token、Tunnel ID、公网域名和公网 URL。
 - `plugins/appstore-expand/docker-compose.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
 - `plugins/appstore-expand/.env`：应用商店扩展的镜像、标题、远程商店地址等配置。
 - `plugins/dujiao-bot/docker-compose.yml`：包含 Dujiao Bot API 服务、Bot 后台静态页面服务、后台代理路由、后台注入脚本。
@@ -194,22 +227,43 @@ docker compose \
 
 ## Cloudflare Tunnel
 
-如果需要默认拉取并启动 `cloudflare-tunnel`，在 `.env` 中同时设置：
+Cloudflare Tunnel 已经拆成独立插件。先复制插件环境文件：
+
+```bash
+cp plugins/cftun/.env.example plugins/cftun/.env
+```
+
+然后在 `plugins/cftun/.env` 中填写：
 
 ```bash
 CLOUDFLARE_TUNNEL_ENABLED=true
 COMPOSE_PROFILES=tunnel
-DUJIAO_TUNNEL_TOKEN=你的 Cloudflare Tunnel Token
+DUJIAO_CFTUN_ID=你的 Tunnel ID
+DUJIAO_CFTUN_TOKEN=你的 Cloudflare Tunnel Token
+
+PUBLIC_USER_HOST=dujiao-next-user.example.com
+PUBLIC_ADMIN_HOST=dujiao-next-admin.example.com
+PUBLIC_API_HOST=dujiao-next-api.example.com
+PUBLIC_BOT_HOST=dujiao-bot.example.com
+PUBLIC_USER_URL=https://dujiao-next-user.example.com
+PUBLIC_ADMIN_URL=https://dujiao-next-admin.example.com
+PUBLIC_API_URL=https://dujiao-next-api.example.com
+PUBLIC_BOT_URL=https://dujiao-bot.example.com
 ```
 
-然后正常执行即可：
+启动：
 
 ```bash
-docker compose pull
-docker compose up -d
+docker compose \
+  --env-file .env \
+  --env-file plugins/cftun/.env \
+  -f docker-compose.yml \
+  -f plugins/cftun/docker-compose.yml \
+  up -d
 ```
 
 ## 备注
 
 - 本项目使用远程镜像部署。
-- 运行配置只使用一个 `.env` 文件，由 Docker Compose 读取后注入容器；镜像内置配置优先，仓库不额外挂载本地源码或覆盖文件。
+- 主服务配置放根目录 `.env`；插件配置放各自插件目录的 `.env`。
+- 镜像内置配置优先，仓库不额外挂载本地源码或覆盖文件。

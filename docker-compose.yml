@@ -2,7 +2,7 @@ services:
   # ---------------------------------------------------------------------------
   # API 服务
   # 提供后端 API 接口
-  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 Cloudflare Tunnel 访问
+  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
   # 镜像: dujiaonext/api:${TAG}
   # ---------------------------------------------------------------------------
   api:
@@ -42,7 +42,7 @@ services:
   # ---------------------------------------------------------------------------
   # User 服务（用户前台）
   # 提供用户前端界面
-  # 生产环境不开放宿主机端口，通过 Cloudflare Tunnel 访问
+  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
   # 镜像: dujiaonext/user:${TAG}
   # ---------------------------------------------------------------------------
   user:
@@ -71,7 +71,7 @@ services:
   # ---------------------------------------------------------------------------
   # Admin 服务（后台管理）
   # 提供后台管理界面
-  # 生产环境不开放宿主机端口，通过 Cloudflare Tunnel 访问
+  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
   # 镜像: dujiaonext/admin:${TAG}
   # ---------------------------------------------------------------------------
   admin:
@@ -151,26 +151,6 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-
-  # ---------------------------------------------------------------------------
-  # Cloudflare Tunnel（可选）
-  # 开启方式：在 .env 设置 COMPOSE_PROFILES=tunnel 后执行 docker compose up -d
-  # 使用项目专属 DUJIAO_TUNNEL_TOKEN，避免被其他项目的 TUNNEL_TOKEN 覆盖
-  # ---------------------------------------------------------------------------
-  cloudflare-tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: dujiao-cloudflare-tunnel
-    restart: unless-stopped
-    profiles:
-      - tunnel
-    environment:
-      - TUNNEL_TOKEN=${DUJIAO_TUNNEL_TOKEN:?Set DUJIAO_TUNNEL_TOKEN in .env}
-    command: tunnel --no-autoupdate run
-    networks:
-      - dujiao-network
-    depends_on:
-      - user
-      - admin
 
 networks:
   dujiao-network:
