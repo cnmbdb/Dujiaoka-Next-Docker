@@ -51,9 +51,17 @@ flowchart TD
 
 ## 第 5 步：配置 .env 并启动
 
-1. 在项目根目录编辑唯一环境文件 `.env`。
-2. 在宝塔文件页进入该目录，点击顶部“终端”。
-3. 执行启动命令：
+1. 在项目根目录编辑主环境文件 `.env`。
+2. 如果启用插件，再分别复制并编辑插件自己的环境文件：
+
+```bash
+cp plugins/appstore-expand/.env.example plugins/appstore-expand/.env
+cp plugins/dujiao-bot/.env.example plugins/dujiao-bot/.env
+```
+
+插件配置各自放在对应插件目录里，主 `.env` 只保留核心服务和 Cloudflare Tunnel 配置。
+3. 在宝塔文件页进入该目录，点击顶部“终端”。
+4. 执行启动命令：
 
 ```bash
 docker compose up -d
@@ -123,12 +131,37 @@ docker compose logs -f
 
 ## 可选插件
 
-核心项目只保留必要服务。`dujiaoka-appstore-expand` 和 `dujiao-bot` 作为可选插件提供，默认不会污染主 `docker-compose.yml`。
+核心项目只保留必要服务。插件放在各自文件夹内，每个插件都有独立的 compose 覆盖文件和 `.env.example`：
+
+```text
+plugins/
+  appstore-expand/
+    docker-compose.yml
+    .env.example
+    .env
+  dujiao-bot/
+    docker-compose.yml
+    .env.example
+    .env
+```
+
+`.env` 文件不提交到仓库，部署时从对应 `.env.example` 复制后填写。
 
 启用应用商店扩展：
 
 ```bash
 docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml up -d --force-recreate
+```
+
+新目录方式：
+
+```bash
+docker compose \
+  --env-file .env \
+  --env-file plugins/appstore-expand/.env \
+  -f docker-compose.yml \
+  -f plugins/appstore-expand/docker-compose.yml \
+  up -d --force-recreate
 ```
 
 启用 Dujiao Bot：
@@ -137,18 +170,45 @@ docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml up 
 docker compose -f docker-compose.yml -f plugins/dujiao-bot.yml up -d --force-recreate
 ```
 
+新目录方式：
+
+```bash
+docker compose \
+  --env-file .env \
+  --env-file plugins/dujiao-bot/.env \
+  -f docker-compose.yml \
+  -f plugins/dujiao-bot/docker-compose.yml \
+  up -d --force-recreate
+```
+
 同时启用两个插件：
 
 ```bash
 docker compose -f docker-compose.yml -f plugins/dujiaoka-appstore-expand.yml -f plugins/dujiao-bot.yml up -d --force-recreate
 ```
 
+新目录方式：
+
+```bash
+docker compose \
+  --env-file .env \
+  --env-file plugins/appstore-expand/.env \
+  --env-file plugins/dujiao-bot/.env \
+  -f docker-compose.yml \
+  -f plugins/appstore-expand/docker-compose.yml \
+  -f plugins/dujiao-bot/docker-compose.yml \
+  up -d --force-recreate
+```
+
 插件说明：
-- `plugins/dujiaoka-appstore-expand.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
-- `plugins/dujiao-bot.yml`：包含 Dujiao Bot API 服务、Bot 后台静态页面服务、后台代理路由、后台注入脚本。
+- `plugins/appstore-expand/docker-compose.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
+- `plugins/appstore-expand/.env`：应用商店扩展的镜像、标题、远程商店地址等配置。
+- `plugins/dujiao-bot/docker-compose.yml`：包含 Dujiao Bot API 服务、Bot 后台静态页面服务、后台代理路由、后台注入脚本。
+- `plugins/dujiao-bot/.env`：Dujiao Bot 的 Telegram Token、Webhook、菜单文案、功能开关等配置。
+- `dujiao-bot-migrate` 会在 Bot 主服务启动前执行镜像内置 SQL 迁移，自动创建 `dujiao_bot_*` 表。
 - Bot 后台静态页面直接来自 `ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot` 镜像内置的 `admin-panel/out`，生产部署不需要挂载开发源码。
-- AppStore Expand 默认使用 `ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand`，可通过 `.env` 的 `APPSTORE_IMAGE` / `APPSTORE_TAG` 覆盖。
-- 其他用户只需要保留主项目文件，再额外放入需要的插件 yml 文件，按上面的 overlay 命令重构容器即可。
+- AppStore Expand 默认使用 `ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand`，可通过 `plugins/appstore-expand/.env` 的 `APPSTORE_IMAGE` / `APPSTORE_TAG` 覆盖。
+- 旧的 `plugins/dujiaoka-appstore-expand.yml` 和 `plugins/dujiao-bot.yml` 仅作为兼容入口保留；新部署建议使用插件文件夹里的 compose 文件。
 - 插件不开放宿主机端口，仍然通过 Cloudflare Tunnel 或 Docker 内部网络访问。
 
 ## Cloudflare Tunnel
