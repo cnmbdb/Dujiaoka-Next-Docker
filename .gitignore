@@ -1,6 +1,10 @@
 .env
 plugins/*/.env
+plugins/*/.enabled
 .DS_Store
+node_modules/
+plugins/*/admin-panel/.next/
+plugins/*/admin-panel/out/
 
 data/
 data/**

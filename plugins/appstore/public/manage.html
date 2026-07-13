@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>扩展插件管理</title>
+  <!--APPSTORE_MANAGE_CONTEXT-->
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #ffffff;
+      --foreground: #0a0a0a;
+      --card: #ffffff;
+      --card-foreground: #0a0a0a;
+      --muted: #f5f5f5;
+      --muted-foreground: #737373;
+      --border: #e5e5e5;
+      --input: #e5e5e5;
+      --primary: #171717;
+      --primary-foreground: #fafafa;
+      --secondary: #f5f5f5;
+      --secondary-foreground: #171717;
+      --destructive: #dc2626;
+      --ring: #a3a3a3;
+      --radius: 10px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #0a0a0a;
+      --foreground: #fafafa;
+      --card: #0a0a0a;
+      --card-foreground: #fafafa;
+      --muted: #262626;
+      --muted-foreground: #a3a3a3;
+      --border: #262626;
+      --input: #404040;
+      --primary: #fafafa;
+      --primary-foreground: #171717;
+      --secondary: #262626;
+      --secondary-foreground: #fafafa;
+      --destructive: #ef4444;
+      --ring: #737373;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--foreground);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    button, input { font: inherit; }
+    button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+    .page { display: flex; flex-direction: column; gap: 20px; padding: 2px 2px 28px; }
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .page-description { margin: 0; color: var(--muted-foreground); font-size: 13px; }
+    .layout { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 2px);
+      background: var(--card);
+      color: var(--card-foreground);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 20px 0; }
+    .card-title { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 600; }
+    .card-description { margin: 5px 0 0; color: var(--muted-foreground); font-size: 13px; }
+    .card-content { padding: 0 20px; }
+    .card-footer { display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 50%, transparent); padding: 14px 20px; }
+    .badge { display: inline-flex; align-items: center; min-height: 22px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; background: var(--secondary); color: var(--secondary-foreground); font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .badge[data-state="enabled"] { border-color: color-mix(in srgb, #16a34a 35%, var(--border)); background: color-mix(in srgb, #16a34a 10%, var(--card)); color: #15803d; }
+    :root[data-theme="dark"] .badge[data-state="enabled"] { color: #86efac; }
+    .button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 0 14px; background: var(--primary); color: var(--primary-foreground); font-weight: 500; transition: background .15s ease, border-color .15s ease, opacity .15s ease; }
+    .button:hover:not(:disabled) { opacity: .9; }
+    .button:focus-visible, .switch:focus-visible, .drop-zone:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .button[data-variant="outline"] { border-color: var(--border); background: var(--background); color: var(--foreground); }
+    .button[data-size="sm"] { min-height: 32px; padding: 0 11px; font-size: 12px; }
+    .button:disabled { cursor: not-allowed; opacity: .5; }
+    .button svg, .drop-icon svg, .plugin-icon svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .drop-zone { display: flex; min-height: 220px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 1px dashed var(--input); border-radius: var(--radius); padding: 24px 18px; background: color-mix(in srgb, var(--muted) 55%, transparent); text-align: center; transition: border-color .15s ease, background .15s ease; }
+    .drop-zone.is-dragging { border-color: var(--ring); background: var(--muted); }
+    .drop-icon { display: inline-flex; width: 42px; height: 42px; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 10px; background: var(--background); color: var(--foreground); }
+    .drop-title { font-weight: 600; }
+    .drop-description { max-width: 240px; color: var(--muted-foreground); font-size: 12px; }
+    .file-name { display: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 6px; background: var(--background); padding: 6px 9px; color: var(--foreground); font-size: 12px; }
+    .file-name.is-visible { display: block; }
+    .structure { margin: 16px 0 0; border-radius: 8px; background: var(--muted); padding: 12px; color: var(--muted-foreground); font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+    .alert { display: none; align-items: flex-start; gap: 10px; border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; background: var(--background); color: var(--foreground); font-size: 12px; }
+    .alert.is-visible { display: flex; }
+    .alert[data-kind="error"] { border-color: color-mix(in srgb, var(--destructive) 45%, var(--border)); color: var(--destructive); }
+    .alert[data-kind="success"] { border-color: color-mix(in srgb, #16a34a 45%, var(--border)); color: #15803d; }
+    .plugin-list { display: flex; flex-direction: column; }
+    .plugin-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 16px 20px; border-top: 1px solid var(--border); }
+    .plugin-row:first-child { border-top: 0; }
+    .plugin-main { display: flex; min-width: 0; align-items: center; gap: 13px; }
+    .plugin-icon { display: inline-flex; width: 40px; height: 40px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); color: var(--muted-foreground); font-weight: 700; }
+    .plugin-copy { min-width: 0; }
+    .plugin-name-line { display: flex; min-width: 0; align-items: center; flex-wrap: wrap; gap: 7px; }
+    .plugin-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .plugin-meta { margin-top: 4px; overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .plugin-actions { display: flex; align-items: center; gap: 10px; }
+    .switch { position: relative; display: inline-flex; width: 38px; height: 22px; flex: 0 0 auto; align-items: center; border: 0; border-radius: 999px; padding: 2px; background: var(--input); transition: background .15s ease; }
+    .switch[aria-checked="true"] { background: var(--primary); }
+    .switch:disabled { cursor: not-allowed; opacity: .55; }
+    .switch-thumb { display: block; width: 18px; height: 18px; border-radius: 999px; background: var(--background); box-shadow: 0 1px 2px rgba(0,0,0,.18); transition: transform .15s ease; }
+    .switch[aria-checked="true"] .switch-thumb { transform: translateX(16px); }
+    .empty { display: flex; min-height: 240px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px; color: var(--muted-foreground); text-align: center; }
+    .skeleton { height: 72px; border-top: 1px solid var(--border); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--muted) 80%, transparent), transparent); background-size: 220% 100%; animation: shimmer 1.3s infinite; }
+    @keyframes shimmer { to { background-position: -220% 0; } }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } .drop-zone { min-height: 190px; } }
+    @media (max-width: 620px) { .page-head { flex-direction: column; } .plugin-row { grid-template-columns: 1fr; } .plugin-actions { justify-content: flex-end; } .card-header, .card-content, .plugin-row { padding-left: 15px; padding-right: 15px; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <div>
+        <p class="page-description">上传标准插件包，并管理本机插件的启用状态与配置入口。</p>
+      </div>
+      <span id="plugin-count" class="badge">正在读取…</span>
+    </header>
+
+    <section class="layout">
+      <article class="card">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title">上传插件</h2>
+            <p class="card-description">选择包含完整插件目录的压缩包。</p>
+          </div>
+          <span class="badge">本机安装</span>
+        </header>
+        <div class="card-content">
+          <input id="plugin-file" type="file" accept=".zip,.tar,.tgz,.tar.gz,application/zip,application/x-tar,application/gzip" hidden />
+          <div id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="选择插件压缩包">
+            <span class="drop-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
+            </span>
+            <div class="drop-title">拖入插件包，或点击选择</div>
+            <div class="drop-description">支持 .zip、.tar、.tgz、.tar.gz，最大 100 MB。</div>
+            <span id="file-name" class="file-name"></span>
+            <button id="choose-file" class="button" type="button" data-variant="outline">选择插件包</button>
+          </div>
+          <pre class="structure">plugins/&lt;plugin-id&gt;/
+├── plugin.json
+├── docker-compose.yml
+├── .env.example
+├── backend/
+├── admin/
+├── public/
+│   ├── icon.*（由 plugin.json.icon 指定）
+│   └── inject.js（按需）
+├── migrations/
+└── hooks/
+    ├── install.sh
+    ├── enable.sh
+    ├── disable.sh
+    └── uninstall.sh</pre>
+          <div id="upload-alert" class="alert" role="status" aria-live="polite"></div>
+        </div>
+        <footer class="card-footer">
+          <button id="upload-plugin" class="button" type="button" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M5 21h14"/></svg>
+            安装插件
+          </button>
+          <span class="card-description">安装后默认保持禁用</span>
+        </footer>
+      </article>
+
+      <article class="card">
+        <header class="card-header">
+          <div>
+            <h2 class="card-title">已安装插件</h2>
+            <p class="card-description">管理项目 <code>plugins/</code> 中的本机插件。</p>
+          </div>
+          <button id="refresh-plugins" class="button" type="button" data-size="sm" data-variant="outline">刷新</button>
+        </header>
+        <div id="plugin-list" class="plugin-list" aria-live="polite">
+          <div class="skeleton"></div><div class="skeleton"></div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var cfg = window.__APPSTORE_MANAGE__ || {};
+      var root = document.documentElement;
+      var fileInput = document.getElementById('plugin-file');
+      var dropZone = document.getElementById('drop-zone');
+      var fileName = document.getElementById('file-name');
+      var uploadButton = document.getElementById('upload-plugin');
+      var uploadAlert = document.getElementById('upload-alert');
+      var pluginList = document.getElementById('plugin-list');
+      var pluginCount = document.getElementById('plugin-count');
+      var selectedFile = null;
+      var busyPlugins = new Set();
+
+      root.setAttribute('data-theme', cfg.theme === 'dark' ? 'dark' : 'light');
+
+      function escapeHtml(value) {
+        return String(value == null ? '' : value)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
+
+      function showAlert(message, kind) {
+        uploadAlert.textContent = message || '';
+        uploadAlert.setAttribute('data-kind', kind || 'info');
+        uploadAlert.classList.toggle('is-visible', Boolean(message));
+      }
+
+      function setSelectedFile(file) {
+        selectedFile = file || null;
+        fileName.textContent = selectedFile ? selectedFile.name : '';
+        fileName.classList.toggle('is-visible', Boolean(selectedFile));
+        uploadButton.disabled = !selectedFile;
+        showAlert('', 'info');
+      }
+
+      async function request(url, options) {
+        var response = await fetch(url, options || {});
+        var data = await response.json().catch(function () { return { ok: false, message: '服务返回了无效数据' }; });
+        if (!response.ok || data.ok === false) throw new Error(data.message || '请求失败');
+        return data;
+      }
+
+      function isCorePlugin(plugin) {
+        return plugin.id === 'appstore';
+      }
+
+      function renderPlugins(plugins) {
+        pluginCount.textContent = plugins.length + ' 个本机插件';
+        if (!plugins.length) {
+          pluginList.innerHTML = '<div class="empty"><strong>暂无本机插件</strong><span>请从左侧上传标准插件包。</span></div>';
+          return;
+        }
+
+        pluginList.innerHTML = plugins.map(function (plugin) {
+          var state = plugin.appstore_state || {};
+          var core = isCorePlugin(plugin);
+          var enabled = core || Boolean(state.enabled);
+          var busy = busyPlugins.has(plugin.id);
+          var initial = escapeHtml(String(plugin.name || plugin.id || '?').trim().slice(0, 1).toUpperCase());
+          var description = plugin.description || '本机标准插件';
+          return '<div class="plugin-row" data-plugin-id="' + escapeHtml(plugin.id) + '">' +
+            '<div class="plugin-main"><span class="plugin-icon" aria-hidden="true">' + initial + '</span>' +
+              '<div class="plugin-copy"><div class="plugin-name-line"><span class="plugin-name">' + escapeHtml(plugin.name || plugin.id) + '</span>' +
+                '<span class="badge" data-state="' + (enabled ? 'enabled' : 'disabled') + '">' + (enabled ? '已启用' : '已禁用') + '</span>' +
+                (core ? '<span class="badge">系统插件</span>' : '') + '</div>' +
+                '<div class="plugin-meta">' + escapeHtml(plugin.id) + ' · v' + escapeHtml(plugin.version || '0.0.0') + ' · ' + escapeHtml(description) + '</div></div></div>' +
+            '<div class="plugin-actions">' +
+              '<button class="button plugin-config" type="button" data-size="sm" data-variant="outline" data-plugin="' + escapeHtml(plugin.id) + '" data-name="' + escapeHtml(plugin.name || plugin.id) + '">配置</button>' +
+              '<button class="switch plugin-switch" type="button" role="switch" aria-label="' + escapeHtml((enabled ? '禁用 ' : '启用 ') + (plugin.name || plugin.id)) + '" aria-checked="' + String(enabled) + '" data-plugin="' + escapeHtml(plugin.id) + '"' + (core || busy ? ' disabled' : '') + '><span class="switch-thumb"></span></button>' +
+            '</div></div>';
+        }).join('');
+      }
+
+      async function loadPlugins() {
+        pluginList.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+        try {
+          var plugins = await request(cfg.apiBase + '/plugins/local', { cache: 'no-store' });
+          renderPlugins(Array.isArray(plugins) ? plugins : []);
+        } catch (error) {
+          pluginList.innerHTML = '<div class="empty"><strong>插件读取失败</strong><span>' + escapeHtml(error.message) + '</span></div>';
+          pluginCount.textContent = '读取失败';
+        }
+      }
+
+      async function togglePlugin(button) {
+        var pluginId = button.getAttribute('data-plugin');
+        var enabled = button.getAttribute('aria-checked') === 'true';
+        if (!pluginId || busyPlugins.has(pluginId)) return;
+        busyPlugins.add(pluginId);
+        button.disabled = true;
+        try {
+          await request(cfg.apiBase + '/extensions/' + encodeURIComponent(pluginId) + '/' + (enabled ? 'disable' : 'enable'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-AppStore-Token': cfg.actionToken || '' },
+            body: JSON.stringify({ payload: {} })
+          });
+        } catch (error) {
+          window.alert(error.message);
+        } finally {
+          busyPlugins.delete(pluginId);
+          await loadPlugins();
+        }
+      }
+
+      async function uploadPlugin() {
+        if (!selectedFile) return;
+        uploadButton.disabled = true;
+        uploadButton.textContent = '正在安装…';
+        showAlert('正在校验并安装插件包，请稍候。', 'info');
+        try {
+          var data = await request(cfg.apiBase + '/plugins/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-AppStore-Token': cfg.actionToken || '',
+              'X-Plugin-Filename': encodeURIComponent(selectedFile.name)
+            },
+            body: selectedFile
+          });
+          showAlert((data.plugin && data.plugin.name ? data.plugin.name : '插件') + ' 已安装，当前保持禁用。', 'success');
+          fileInput.value = '';
+          setSelectedFile(null);
+          await loadPlugins();
+        } catch (error) {
+          showAlert(error.message, 'error');
+        } finally {
+          uploadButton.textContent = '安装插件';
+          uploadButton.disabled = !selectedFile;
+        }
+      }
+
+      dropZone.addEventListener('click', function (event) {
+        if (event.target && event.target.id === 'upload-plugin') return;
+        fileInput.click();
+      });
+      dropZone.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); fileInput.click(); }
+      });
+      ['dragenter', 'dragover'].forEach(function (name) {
+        dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.add('is-dragging'); });
+      });
+      ['dragleave', 'drop'].forEach(function (name) {
+        dropZone.addEventListener(name, function (event) { event.preventDefault(); dropZone.classList.remove('is-dragging'); });
+      });
+      dropZone.addEventListener('drop', function (event) { setSelectedFile(event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null); });
+      fileInput.addEventListener('change', function () { setSelectedFile(fileInput.files && fileInput.files[0]); });
+      uploadButton.addEventListener('click', function (event) { event.stopPropagation(); uploadPlugin(); });
+      document.getElementById('refresh-plugins').addEventListener('click', loadPlugins);
+      pluginList.addEventListener('click', function (event) {
+        var switchButton = event.target.closest('.plugin-switch');
+        if (switchButton) { togglePlugin(switchButton); return; }
+        var configButton = event.target.closest('.plugin-config');
+        if (configButton && !configButton.disabled) {
+          window.parent.postMessage({
+            type: 'DJ_APPSTORE_OPEN_PLUGIN_CONFIG',
+            pluginId: configButton.getAttribute('data-plugin'),
+            pluginName: configButton.getAttribute('data-name')
+          }, window.location.origin);
+        }
+      });
+      window.addEventListener('message', function (event) {
+        if (event.origin !== window.location.origin) return;
+        var data = event.data || {};
+        if (data.type === 'DJ_APPSTORE_THEME' && (data.theme === 'light' || data.theme === 'dark')) root.setAttribute('data-theme', data.theme);
+      });
+
+      loadPlugins();
+    })();
+  </script>
+</body>
+</html>

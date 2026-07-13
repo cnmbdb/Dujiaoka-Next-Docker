@@ -13,7 +13,7 @@ flowchart TD
     D --> E["宝塔安装 Docker 与 Nginx"]
     E --> F["上传并解压项目源码"]
     F --> G["配置 .env"]
-    G --> H["终端执行 docker compose up -d --build"]
+    G --> H["终端执行 ./dujiao plugin apply"]
     H --> I["宝塔 Docker 容器查看 admin 端口"]
     I --> J["宝塔 Docker 网站绑定域名"]
     J --> K["申请 SSL 并开启 HTTPS"]
@@ -52,20 +52,18 @@ flowchart TD
 ## 第 5 步：配置 .env 并启动
 
 1. 在项目根目录编辑主环境文件 `.env`。
-2. 如果启用插件，再分别复制并编辑插件自己的环境文件：
+2. 查看可用插件：
 
 ```bash
-cp plugins/appstore-expand/.env.example plugins/appstore-expand/.env
-cp plugins/dujiao-bot/.env.example plugins/dujiao-bot/.env
-cp plugins/cftun/.env.example plugins/cftun/.env
+./dujiao plugin list
 ```
 
-插件配置各自放在对应插件目录里，主 `.env` 只保留核心服务配置。
+启用插件时会自动从 `.env.example` 创建该插件自己的 `.env`。先按需编辑，再重新执行启用命令即可应用。
 3. 在宝塔文件页进入该目录，点击顶部“终端”。
 4. 执行启动命令：
 
 ```bash
-docker compose up -d
+./dujiao plugin apply
 ```
 
 `.env` 关键开关说明：
@@ -76,7 +74,7 @@ docker compose up -d
 1. 改完 `HOST_BIND_IP` 后，必须执行：
 
 ```bash
-docker compose up -d --force-recreate
+    ./dujiao plugin apply
 ```
 
 2. 当前 `.env` 里 `API_URL` 为 `http://127.0.0.1:3001`，上域名后必须改为公网 API 域名（例如 `https://api.xxx.com`），否则浏览器会请求回环地址。
@@ -108,122 +106,71 @@ docker compose up -d --force-recreate
 首次或常规更新：
 
 ```bash
-docker compose pull
-docker compose up -d
+git pull
+./dujiao plugin apply
 ```
 
 如果改的是端口、镜像标签、容器启动参数等 Compose 级配置：
 
 ```bash
-docker compose up -d --force-recreate
+./dujiao plugin apply
 ```
 
 查看状态：
 
 ```bash
-docker compose ps
+./dujiao plugin command ps
 ```
 
 查看日志：
 
 ```bash
-docker compose logs -f
+./dujiao plugin command logs -f
 ```
 
-## 可选插件
+## 插件管理
 
-核心项目只保留必要服务。插件放在各自文件夹内，每个插件都有独立的 compose 覆盖文件和 `.env.example`：
+生产仓库默认只保留两个插件目录：
 
 ```text
 plugins/
-  cftun/
-    docker-compose.yml
-    .env.example
-    .env
-  appstore-expand/
-    docker-compose.yml
-    .env.example
-    .env
-  dujiao-bot/
-    docker-compose.yml
-    .env.example
-    .env
+├── appstore/               # 核心插件，永久加载，管理其他插件
+└── cftun/                  # Cloudflare Tunnel，默认停用
 ```
 
-`.env` 文件不提交到仓库，部署时从对应 `.env.example` 复制后填写。
+标准插件包是一个可以直接放入 `plugins/` 的完整目录：
 
-启用应用商店扩展：
+```text
+plugins/<plugin-id>/
+├── plugin.json
+├── docker-compose.yml
+├── .env.example
+├── backend/
+├── admin/
+├── public/
+├── migrations/
+└── hooks/
+```
+
+`plugins/appstore` 拥有插件管理核心权限，随主系统永久加载，不能被停用。它负责插件包的安装、启用、禁用、配置和删除，并使用远程镜像运行。其他插件安装后默认保持停用。
+
+`.env` 与 `.enabled` 是本机状态，不提交到仓库。插件自己的配置只保存在对应目录的 `.env`，不会混入主系统 `.env`。
+
+把第三方插件完整文件夹放进 `plugins/` 后，可以在 App Store 后台管理，也可以使用命令行：
 
 ```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/appstore-expand/.env \
-  -f docker-compose.yml \
-  -f plugins/appstore-expand/docker-compose.yml \
-  up -d --force-recreate
+./dujiao plugin list
+./dujiao plugin enable 插件目录名
+./dujiao plugin disable 插件目录名
 ```
 
-启用 Dujiao Bot：
+应用当前插件状态：
 
 ```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/dujiao-bot/.env \
-  -f docker-compose.yml \
-  -f plugins/dujiao-bot/docker-compose.yml \
-  up -d --force-recreate
+./dujiao plugin apply
 ```
 
-同时启用应用商店扩展和 Dujiao Bot：
-
-```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/appstore-expand/.env \
-  --env-file plugins/dujiao-bot/.env \
-  -f docker-compose.yml \
-  -f plugins/appstore-expand/docker-compose.yml \
-  -f plugins/dujiao-bot/docker-compose.yml \
-  up -d --force-recreate
-```
-
-启用 Cloudflare Tunnel：
-
-```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/cftun/.env \
-  -f docker-compose.yml \
-  -f plugins/cftun/docker-compose.yml \
-  up -d --force-recreate
-```
-
-同时启用 Cloudflare Tunnel、应用商店扩展和 Dujiao Bot：
-
-```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/cftun/.env \
-  --env-file plugins/appstore-expand/.env \
-  --env-file plugins/dujiao-bot/.env \
-  -f docker-compose.yml \
-  -f plugins/cftun/docker-compose.yml \
-  -f plugins/appstore-expand/docker-compose.yml \
-  -f plugins/dujiao-bot/docker-compose.yml \
-  up -d --force-recreate
-```
-
-插件说明：
-- `plugins/cftun/docker-compose.yml`：包含 Cloudflare Tunnel 服务。
-- `plugins/cftun/.env`：Cloudflare Tunnel Token、Tunnel ID、公网域名和公网 URL。
-- `plugins/appstore-expand/docker-compose.yml`：包含应用商店扩展服务、前后台代理路由、后台注入脚本。
-- `plugins/appstore-expand/.env`：应用商店扩展的镜像、标题、远程商店地址等配置。
-- `plugins/dujiao-bot/docker-compose.yml`：包含 Dujiao Bot API 服务、Bot 后台静态页面服务、后台代理路由、后台注入脚本。
-- `plugins/dujiao-bot/.env`：Dujiao Bot 的 Telegram Token、Webhook、菜单文案、功能开关等配置。
-- `dujiao-bot-migrate` 会在 Bot 主服务启动前执行镜像内置 SQL 迁移，自动创建 `dujiao_bot_*` 表。
-- Bot 后台静态页面直接来自 `ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot` 镜像内置的 `admin-panel/out`，生产部署不需要挂载开发源码。
-- AppStore Expand 默认使用 `ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand`，可通过 `plugins/appstore-expand/.env` 的 `APPSTORE_IMAGE` / `APPSTORE_TAG` 覆盖。
-- 插件不开放宿主机端口，仍然通过 Cloudflare Tunnel 或 Docker 内部网络访问。
+插件服务不开放宿主机端口，通过 Docker 内部网络、后台代理或 Cloudflare Tunnel 访问。
 
 ## Cloudflare Tunnel
 
@@ -237,33 +184,26 @@ cp plugins/cftun/.env.example plugins/cftun/.env
 
 ```bash
 CLOUDFLARE_TUNNEL_ENABLED=true
-COMPOSE_PROFILES=tunnel
-DUJIAO_CFTUN_ID=你的 Tunnel ID
-DUJIAO_CFTUN_TOKEN=你的 Cloudflare Tunnel Token
+CFTUN_TUNNEL_ID=你的 Tunnel ID
+TUNNEL_ID=你的 Tunnel ID
+TUNNEL_TOKEN=你的 Cloudflare Tunnel Token
 
 PUBLIC_USER_HOST=dujiao-next-user.example.com
 PUBLIC_ADMIN_HOST=dujiao-next-admin.example.com
 PUBLIC_API_HOST=dujiao-next-api.example.com
-PUBLIC_BOT_HOST=dujiao-bot.example.com
 PUBLIC_USER_URL=https://dujiao-next-user.example.com
 PUBLIC_ADMIN_URL=https://dujiao-next-admin.example.com
 PUBLIC_API_URL=https://dujiao-next-api.example.com
-PUBLIC_BOT_URL=https://dujiao-bot.example.com
 ```
 
 启动：
 
 ```bash
-docker compose \
-  --env-file .env \
-  --env-file plugins/cftun/.env \
-  -f docker-compose.yml \
-  -f plugins/cftun/docker-compose.yml \
-  up -d
+./dujiao plugin enable cftun
 ```
 
 ## 备注
 
-- 本项目使用远程镜像部署。
+- 核心 API/User/Admin 与官方插件默认使用远程镜像；第三方插件可在自己的 Compose 中声明远程镜像或本地构建。
 - 主服务配置放根目录 `.env`；插件配置放各自插件目录的 `.env`。
-- 镜像内置配置优先，仓库不额外挂载本地源码或覆盖文件。
+- 主系统永久只加载 `/plugins/loader.js`；插件启停、路由与页面注入由 App Store 统一管理。

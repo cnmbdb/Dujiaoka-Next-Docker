@@ -1,0 +1,31 @@
+{
+  "$schema": "../plugin.schema.json",
+  "schemaVersion": 1,
+  "id": "cftun",
+  "name": "Cloudflare Tunnel",
+  "version": "1.0.0",
+  "description": "通过 Cloudflare Tunnel 将 Dujiao-Next 服务安全暴露到公网。",
+  "author": "D&J Studio",
+  "license": "MIT",
+  "icon": "public/icon.svg",
+  "selfManaged": true,
+  "compatibility": {
+    "pluginApi": "^1.0.0",
+    "dujiaoNext": ">=1.0.0"
+  },
+  "entrypoints": {
+    "compose": "docker-compose.yml"
+  },
+  "dependencies": [],
+  "permissions": ["network:outbound", "filesystem:plugin-data"],
+  "lifecycle": {
+    "install": "hooks/install.sh",
+    "enable": "hooks/enable.sh",
+    "disable": "hooks/disable.sh",
+    "uninstall": "hooks/uninstall.sh"
+  },
+  "data": {
+    "paths": ["data"],
+    "removeOnUninstall": false
+  }
+}

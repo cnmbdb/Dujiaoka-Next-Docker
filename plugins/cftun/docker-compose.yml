@@ -1,15 +1,21 @@
+name: dujiao-plugin-cftun
+
 services:
-  cloudflare-tunnel:
-    image: cloudflare/cloudflared:${CFTUN_TAG:-latest}
+  cftun:
+    image: cloudflare/cloudflared:latest
     pull_policy: always
-    container_name: dujiao-cloudflare-tunnel
+    container_name: dujiao-plugin-cftun
     restart: unless-stopped
     environment:
-      - TUNNEL_TOKEN=${DUJIAO_CFTUN_TOKEN:?Set DUJIAO_CFTUN_TOKEN in plugins/cftun/.env}
-    command: tunnel --no-autoupdate run
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?请在 plugins/cftun/.env 中填写 TUNNEL_TOKEN}
+    command: tunnel run
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     networks:
       - dujiao-network
-    depends_on:
-      - user
-      - admin
-      - api
+
+networks:
+  dujiao-network:
+    name: dujiao-network
+    external: true

@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>插件配置</title>
+  <!--APPSTORE_CONFIG_CONTEXT-->
+  <style>
+    :root {
+      color-scheme: light;
+      --background: #ffffff;
+      --foreground: #0a0a0a;
+      --card: #ffffff;
+      --card-foreground: #0a0a0a;
+      --muted: #f5f5f5;
+      --muted-foreground: #737373;
+      --border: #e5e5e5;
+      --input: #e5e5e5;
+      --primary: #171717;
+      --primary-foreground: #fafafa;
+      --secondary: #f5f5f5;
+      --secondary-foreground: #171717;
+      --destructive: #dc2626;
+      --ring: #a3a3a3;
+      --radius: 10px;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --background: #0a0a0a;
+      --foreground: #fafafa;
+      --card: #0a0a0a;
+      --card-foreground: #fafafa;
+      --muted: #262626;
+      --muted-foreground: #a3a3a3;
+      --border: #262626;
+      --input: #404040;
+      --primary: #fafafa;
+      --primary-foreground: #171717;
+      --secondary: #262626;
+      --secondary-foreground: #fafafa;
+      --destructive: #ef4444;
+      --ring: #737373;
+    }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body { margin: 0; background: var(--background); color: var(--foreground); font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; line-height: 1.45; }
+    button, input { font: inherit; }
+    button:not(:disabled) { cursor: pointer; }
+    .page { display: flex; flex-direction: column; gap: 18px; padding: 2px 2px 28px; }
+    .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .page-description { margin: 0; color: var(--muted-foreground); font-size: 13px; }
+    .button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 8px; padding: 0 14px; background: var(--primary); color: var(--primary-foreground); font-weight: 500; transition: opacity .15s ease, background .15s ease; }
+    .button:hover:not(:disabled) { opacity: .9; }
+    .button:focus-visible, .input:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .button[data-variant="outline"] { border-color: var(--border); background: var(--background); color: var(--foreground); }
+    .button[data-variant="secondary"] { border-color: var(--border); background: var(--secondary); color: var(--secondary-foreground); }
+    .button[data-size="sm"] { min-height: 32px; padding: 0 11px; font-size: 12px; }
+    .button:disabled { cursor: not-allowed; opacity: .5; }
+    .button svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    .card { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: calc(var(--radius) + 2px); background: var(--card); color: var(--card-foreground); box-shadow: 0 1px 2px rgba(0,0,0,.02); }
+    .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 20px; border-bottom: 1px solid var(--border); }
+    .card-title { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 600; }
+    .card-description { margin: 5px 0 0; color: var(--muted-foreground); font-size: 13px; }
+    .card-content { padding: 20px; }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 50%, transparent); padding: 14px 20px; }
+    .card-actions { display: flex; align-items: center; gap: 9px; }
+    .badge { display: inline-flex; min-height: 22px; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; background: var(--secondary); color: var(--secondary-foreground); font-size: 11px; font-weight: 500; white-space: nowrap; }
+    .field-group { display: flex; flex-direction: column; gap: 18px; }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .field-label { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 600; }
+    .field-description { margin: 0; color: var(--muted-foreground); font-size: 11px; }
+    .input-group { display: flex; min-height: 40px; align-items: stretch; overflow: hidden; border: 1px solid var(--input); border-radius: 8px; background: var(--background); }
+    .input-group:focus-within { outline: 2px solid var(--ring); outline-offset: 2px; }
+    .input { min-width: 0; flex: 1; border: 0; background: transparent; padding: 9px 11px; color: var(--foreground); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; outline: none; }
+    .input::placeholder { color: var(--muted-foreground); }
+    .input-addon { border: 0; border-left: 1px solid var(--border); border-radius: 0; background: var(--secondary); color: var(--secondary-foreground); padding: 0 12px; font-size: 12px; }
+    .alert { display: none; align-items: flex-start; gap: 9px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; background: var(--background); font-size: 12px; }
+    .alert.is-visible { display: flex; }
+    .alert[data-kind="error"] { border-color: color-mix(in srgb, var(--destructive) 45%, var(--border)); color: var(--destructive); }
+    .alert[data-kind="success"] { border-color: color-mix(in srgb, #16a34a 45%, var(--border)); color: #15803d; }
+    :root[data-theme="dark"] .alert[data-kind="success"] { color: #86efac; }
+    .skeleton { height: 70px; border-radius: 8px; background: linear-gradient(90deg, var(--muted), color-mix(in srgb, var(--muted) 50%, transparent), var(--muted)); background-size: 220% 100%; animation: shimmer 1.3s infinite; }
+    @keyframes shimmer { to { background-position: -220% 0; } }
+    @media (max-width: 620px) { .page-head, .card-footer { align-items: stretch; flex-direction: column; } .card-actions { width: 100%; } .card-actions .button { flex: 1; } .card-header, .card-content, .card-footer { padding-left: 15px; padding-right: 15px; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="page-head">
+      <p class="page-description">直接编辑该插件的 <code>.env</code>；可配置键以 <code>.env.example</code> 为准。</p>
+      <button id="back-button" class="button" type="button" data-variant="outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+        返回插件管理
+      </button>
+    </header>
+
+    <section class="card">
+      <header class="card-header">
+        <div>
+          <h2 id="config-title" class="card-title">正在读取配置</h2>
+          <p class="card-description">敏感字段默认隐藏；保存前会自动备份当前配置。</p>
+        </div>
+        <span id="field-count" class="badge">读取中</span>
+      </header>
+      <div class="card-content">
+        <div id="config-alert" class="alert" role="status" aria-live="polite"></div>
+        <form id="config-form" class="field-group" autocomplete="off">
+          <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        </form>
+      </div>
+      <footer class="card-footer">
+        <span class="card-description">保存后请重新启用插件或重启对应服务，使新配置生效。</span>
+        <div class="card-actions">
+          <button id="reset-button" class="button" type="button" data-variant="secondary" disabled>重置</button>
+          <button id="save-button" class="button" type="submit" form="config-form" disabled>保存配置</button>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var cfg = window.__APPSTORE_PLUGIN_CONFIG__ || {};
+      var root = document.documentElement;
+      var form = document.getElementById('config-form');
+      var alertBox = document.getElementById('config-alert');
+      var saveButton = document.getElementById('save-button');
+      var resetButton = document.getElementById('reset-button');
+      var title = document.getElementById('config-title');
+      var fieldCount = document.getElementById('field-count');
+      var fields = [];
+      root.setAttribute('data-theme', cfg.theme === 'dark' ? 'dark' : 'light');
+
+      function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character];
+        });
+      }
+
+      function showAlert(message, kind) {
+        alertBox.textContent = message || '';
+        alertBox.setAttribute('data-kind', kind || 'info');
+        alertBox.classList.toggle('is-visible', Boolean(message));
+      }
+
+      async function request(url, options) {
+        var requestOptions = options || {};
+        requestOptions.headers = Object.assign({}, requestOptions.headers || {}, { 'X-AppStore-Token': cfg.actionToken || '' });
+        var response = await fetch(url, requestOptions);
+        var data = await response.json().catch(function () { return { ok: false, message: '服务返回了无效数据' }; });
+        if (!response.ok || data.ok === false) throw new Error(data.message || '请求失败');
+        return data;
+      }
+
+      function renderFields(nextFields) {
+        fields = Array.isArray(nextFields) ? nextFields : [];
+        title.textContent = (cfg.pluginName || cfg.pluginId || '插件') + ' · .env';
+        fieldCount.textContent = fields.length + ' 个配置项';
+        form.innerHTML = fields.map(function (field) {
+          var secretBadge = field.secret ? '<span class="badge">敏感字段</span>' : '';
+          var showButton = field.secret ? '<button class="input-addon secret-toggle" type="button">显示</button>' : '';
+          var defaultText = field.secret ? '默认值：敏感信息' : '默认值：' + (field.defaultValue || '空');
+          return '<div class="field" data-field-key="' + escapeHtml(field.key) + '">' +
+            '<div class="field-head"><label class="field-label" for="field-' + escapeHtml(field.key) + '">' + escapeHtml(field.key) + '</label>' + secretBadge + '</div>' +
+            '<div class="input-group"><input id="field-' + escapeHtml(field.key) + '" class="input" type="' + (field.secret ? 'password' : 'text') + '" data-key="' + escapeHtml(field.key) + '" value="' + escapeHtml(field.value) + '" spellcheck="false" />' + showButton + '</div>' +
+            '<p class="field-description">' + escapeHtml(defaultText) + '</p></div>';
+        }).join('');
+        saveButton.disabled = false;
+        resetButton.disabled = false;
+      }
+
+      async function loadConfig() {
+        showAlert('', 'info');
+        try {
+          var data = await request(cfg.apiBase + '/plugins/' + encodeURIComponent(cfg.pluginId) + '/env', { cache: 'no-store' });
+          if (data.plugin && data.plugin.name) cfg.pluginName = data.plugin.name;
+          renderFields(data.fields);
+        } catch (error) {
+          form.innerHTML = '';
+          title.textContent = '配置读取失败';
+          fieldCount.textContent = '不可用';
+          showAlert(error.message, 'error');
+        }
+      }
+
+      async function saveConfig(event) {
+        event.preventDefault();
+        saveButton.disabled = true;
+        resetButton.disabled = true;
+        saveButton.textContent = '正在保存…';
+        showAlert('', 'info');
+        var values = {};
+        Array.prototype.forEach.call(form.querySelectorAll('[data-key]'), function (input) { values[input.getAttribute('data-key')] = input.value; });
+        try {
+          var data = await request(cfg.apiBase + '/plugins/' + encodeURIComponent(cfg.pluginId) + '/env', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: values, requestedBy: 'plugin-config-page' })
+          });
+          renderFields(data.fields);
+          showAlert(data.message || '配置已保存', 'success');
+        } catch (error) {
+          showAlert(error.message, 'error');
+        } finally {
+          saveButton.textContent = '保存配置';
+          saveButton.disabled = false;
+          resetButton.disabled = false;
+        }
+      }
+
+      async function resetConfig() {
+        if (!window.confirm('确定使用 .env.example 覆盖当前插件配置吗？当前 .env 会先自动备份。')) return;
+        saveButton.disabled = true;
+        resetButton.disabled = true;
+        resetButton.textContent = '正在重置…';
+        showAlert('', 'info');
+        try {
+          var data = await request(cfg.apiBase + '/plugins/' + encodeURIComponent(cfg.pluginId) + '/env/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestedBy: 'plugin-config-page' })
+          });
+          renderFields(data.fields);
+          showAlert(data.message || '配置已重置', 'success');
+        } catch (error) {
+          showAlert(error.message, 'error');
+        } finally {
+          resetButton.textContent = '重置';
+          saveButton.disabled = false;
+          resetButton.disabled = false;
+        }
+      }
+
+      document.getElementById('back-button').addEventListener('click', function () {
+        window.parent.postMessage({ type: 'DJ_APPSTORE_CLOSE_PLUGIN_CONFIG' }, window.location.origin);
+      });
+      form.addEventListener('submit', saveConfig);
+      resetButton.addEventListener('click', resetConfig);
+      form.addEventListener('click', function (event) {
+        var toggle = event.target.closest('.secret-toggle');
+        if (!toggle) return;
+        var input = toggle.parentElement.querySelector('.input');
+        var visible = input.type === 'text';
+        input.type = visible ? 'password' : 'text';
+        toggle.textContent = visible ? '显示' : '隐藏';
+      });
+      window.addEventListener('message', function (event) {
+        if (event.origin !== window.location.origin) return;
+        var data = event.data || {};
+        if (data.type === 'DJ_APPSTORE_THEME' && (data.theme === 'light' || data.theme === 'dark')) root.setAttribute('data-theme', data.theme);
+      });
+
+      loadConfig();
+    })();
+  </script>
+</body>
+</html>

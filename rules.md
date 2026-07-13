@@ -1,6 +1,6 @@
 # Dujiao-Next Development Rules
 
-本文件是 `Dujiao-Next` 与 `dujiaoka-appstore-expand` 的系统助记词与协作开发规则。
+本文件是 `Dujiao-Next` 与核心 `plugins/appstore` 插件的系统助记词与协作开发规则。
 
 ## 1. 目标与边界
 
@@ -11,8 +11,8 @@
 ## 2. 项目结构认知
 
 - `Dujiao-Next`：主系统（API/User/Admin/Postgres/Redis）。
-- `dujiaoka-appstore-expand`：应用商店扩展服务，独立容器与端口。
-- 通过 `docker-compose.yml` 统一编排，默认以镜像部署为主。
+- `plugins/appstore`：拥有插件安装、启用、禁用、配置与删除能力的核心应用商店服务。
+- 核心服务和官方插件使用远程镜像；App Store 永久加载，其他插件由 `./dujiao` 根据 `plugins/*/.enabled` 统一编排。
 
 ## 3. 开发原则
 
@@ -40,8 +40,8 @@
   - User: `dujiao-next-user.aloure-web.top` -> `http://dujiao-next-user:80`
   - Admin: `dujiao-next-admin.aloure-web.top` -> `http://dujiao-next-admin:80`
 - 生产部署默认流程：
-  1. `docker compose pull`
-  2. `docker compose up -d`
+  1. `git pull`
+  2. `./dujiao plugin apply`
   3. 健康检查 + 关键接口回归（登录、下单、支付回调）
 
 ## 6. 配置规则
@@ -54,7 +54,7 @@
 
 - 所有问题先看证据：容器状态、接口响应、API 日志、数据库状态。
 - 常用排障命令：
-  - `docker compose ps`
+  - `./dujiao plugin command ps`
   - `docker logs -f dujiao-next-api`
   - `docker logs -f dujiao-next-user`
   - `docker logs -f dujiao-next-admin`

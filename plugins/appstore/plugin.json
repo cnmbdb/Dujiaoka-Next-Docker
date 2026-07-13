@@ -1,0 +1,51 @@
+{
+  "$schema": "../plugin.schema.json",
+  "schemaVersion": 1,
+  "id": "appstore",
+  "name": "Dujiao App Store",
+  "version": "1.0.0",
+  "description": "在后台 iframe 中管理插件的安装、启用、禁用、更新和删除。",
+  "author": "D&J Studio",
+  "license": "MIT",
+  "icon": "public/images/icon.svg",
+  "selfManaged": false,
+  "compatibility": {
+    "pluginApi": "^1.0.0",
+    "dujiaoNext": ">=1.0.0"
+  },
+  "entrypoints": {
+    "compose": "docker-compose.yml",
+    "backend": {
+      "service": "appstore",
+      "port": 3010,
+      "healthPath": "/health"
+    },
+    "admin": {
+      "type": "iframe",
+      "path": "/plugins/appstore/panel",
+      "title": "插件商店"
+    },
+    "public": {
+      "scripts": ["public/inject.js"],
+      "styles": []
+    }
+  },
+  "dependencies": ["core:admin"],
+  "permissions": [
+    "network:outbound",
+    "filesystem:plugin-data",
+    "filesystem:plugins",
+    "docker:manage",
+    "plugins:manage"
+  ],
+  "lifecycle": {
+    "install": "hooks/install.sh",
+    "enable": "hooks/enable.sh",
+    "disable": "hooks/disable.sh",
+    "uninstall": "hooks/uninstall.sh"
+  },
+  "data": {
+    "paths": ["data"],
+    "removeOnUninstall": false
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dujiao-next.local/schemas/plugin-v1.json",
+  "title": "Dujiao-Next Plugin Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "name",
+    "version",
+    "description",
+    "icon",
+    "compatibility",
+    "entrypoints",
+    "permissions",
+    "lifecycle"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "author": { "type": "string", "maxLength": 100 },
+    "license": { "type": "string", "maxLength": 50 },
+    "homepage": { "type": "string", "format": "uri" },
+    "icon": {
+      "$ref": "#/$defs/relativePath",
+      "pattern": "^public/"
+    },
+    "selfManaged": { "type": "boolean", "default": true },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pluginApi", "dujiaoNext"],
+      "properties": {
+        "pluginApi": { "type": "string", "minLength": 1 },
+        "dujiaoNext": { "type": "string", "minLength": 1 }
+      }
+    },
+    "entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compose"],
+      "properties": {
+        "compose": { "$ref": "#/$defs/relativePath" },
+        "backend": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["service", "port", "healthPath"],
+          "properties": {
+            "service": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "healthPath": { "type": "string", "pattern": "^/" }
+          }
+        },
+        "admin": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "path"],
+          "properties": {
+            "type": { "enum": ["iframe", "route", "none"] },
+            "path": { "type": "string", "pattern": "^/" },
+            "title": { "type": "string", "maxLength": 100 }
+          }
+        },
+        "public": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scripts": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/relativePath" },
+              "uniqueItems": true
+            },
+            "styles": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/relativePath" },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9:-]+$" },
+      "uniqueItems": true,
+      "default": []
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "database:read",
+          "database:write",
+          "redis:read",
+          "redis:write",
+          "network:outbound",
+          "filesystem:plugin-data",
+          "filesystem:plugins",
+          "docker:manage",
+          "plugins:manage"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["install", "enable", "disable", "uninstall"],
+      "properties": {
+        "install": { "$ref": "#/$defs/hookPath" },
+        "enable": { "$ref": "#/$defs/hookPath" },
+        "disable": { "$ref": "#/$defs/hookPath" },
+        "uninstall": { "$ref": "#/$defs/hookPath" }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "paths": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relativePath" },
+          "uniqueItems": true
+        },
+        "removeOnUninstall": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "hookPath": {
+      "type": "string",
+      "pattern": "^hooks/[a-z0-9-]+\\.sh$"
+    }
+  }
+}

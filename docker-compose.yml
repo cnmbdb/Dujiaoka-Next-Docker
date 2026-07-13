@@ -86,6 +86,8 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - ./nginx/admin-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./plugins/loader.js:/usr/share/nginx/html/plugin-loader.js:ro
+      - ./data/plugins:/var/lib/dujiao/plugins:ro
     networks:
       - dujiao-network
     depends_on:
@@ -154,6 +156,7 @@ services:
 
 networks:
   dujiao-network:
+    name: dujiao-network
     driver: bridge
 
 # 使用 bind mount 而非命名卷（官方推荐）

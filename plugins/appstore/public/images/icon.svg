@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Dujiao App Store">
+  <rect width="64" height="64" rx="16" fill="#16a34a"/>
+  <path d="M20 24h24l-2 25H22l-2-25Z" fill="#fff"/>
+  <path d="M26 25v-4a6 6 0 0 1 12 0v4" fill="none" stroke="#14532d" stroke-width="4" stroke-linecap="round"/>
+  <path d="M32 31v12m-6-6h12" stroke="#16a34a" stroke-width="4" stroke-linecap="round"/>
+</svg>

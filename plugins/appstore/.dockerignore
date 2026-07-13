@@ -1,0 +1,10 @@
+.env
+data
+admin
+hooks
+migrations
+README.md
+backend/node_modules
+backend/legacy
+*.log
+.DS_Store
