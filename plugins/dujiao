@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PLUGIN_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${PLUGIN_HOME}/.." && pwd)"
+APPSTORE_DIR="${PLUGIN_HOME}/appstore"
+HOST_COMPOSE="${PLUGIN_HOME}/host/docker-compose.yml"
+PROJECT_NAME="${COMPOSE_PROJECT_NAME:-dujiao-next}"
+
+die() {
+  printf '错误: %s\n' "$*" >&2
+  exit 1
+}
+
+require_file() {
+  [[ -f "$1" ]] || die "缺少必要文件: ${1#"${ROOT_DIR}/"}"
+}
+
+generate_token() {
+  od -An -N24 -tx1 /dev/urandom | tr -d ' \n'
+}
+
+ensure_appstore_env() {
+  local env_file="${APPSTORE_DIR}/.env"
+  local example_file="${APPSTORE_DIR}/.env.example"
+  require_file "$example_file"
+
+  if [[ ! -f "$env_file" ]]; then
+    cp "$example_file" "$env_file"
+    printf '已创建配置: plugins/appstore/.env\n'
+  fi
+
+  local current_token
+  current_token="$(sed -n 's/^APPSTORE_API_TOKEN=//p' "$env_file" | head -n 1)"
+  if [[ -z "$current_token" || "$current_token" == '<change-me-before-production>' ]]; then
+    local token temporary_file
+    token="$(generate_token)"
+    temporary_file="${env_file}.tmp.$$"
+    awk -v token="$token" '
+      BEGIN { replaced = 0 }
+      /^APPSTORE_API_TOKEN=/ { print "APPSTORE_API_TOKEN=" token; replaced = 1; next }
+      { print }
+      END { if (!replaced) print "APPSTORE_API_TOKEN=" token }
+    ' "$env_file" > "$temporary_file"
+    mv "$temporary_file" "$env_file"
+  fi
+  chmod 600 "$env_file" 2>/dev/null || true
+}
+
+ensure_runtime() {
+  command -v docker >/dev/null 2>&1 || die '未安装 Docker'
+  docker compose version >/dev/null 2>&1 || die 'Docker Compose 不可用'
+  require_file "${ROOT_DIR}/docker-compose.yml"
+  require_file "$HOST_COMPOSE"
+  require_file "${PLUGIN_HOME}/host/admin-nginx.conf"
+  require_file "${PLUGIN_HOME}/loader.js"
+  require_file "${APPSTORE_DIR}/plugin.json"
+  require_file "${APPSTORE_DIR}/docker-compose.yml"
+
+  mkdir -p "${ROOT_DIR}/data/plugins/nginx" "${APPSTORE_DIR}/data"
+  if [[ ! -f "${ROOT_DIR}/data/plugins/registry.json" ]]; then
+    printf '{"schemaVersion":1,"plugins":{}}\n' > "${ROOT_DIR}/data/plugins/registry.json"
+  fi
+  ensure_appstore_env
+}
+
+compose_args() {
+  COMPOSE_ARGS=(
+    docker compose
+    --project-directory "$ROOT_DIR"
+    --project-name "$PROJECT_NAME"
+  )
+  [[ ! -f "${ROOT_DIR}/.env" ]] || COMPOSE_ARGS+=(--env-file "${ROOT_DIR}/.env")
+  COMPOSE_ARGS+=(--env-file "${APPSTORE_DIR}/.env")
+  COMPOSE_ARGS+=(
+    -f "${ROOT_DIR}/docker-compose.yml"
+    -f "${APPSTORE_DIR}/docker-compose.yml"
+    -f "$HOST_COMPOSE"
+  )
+}
+
+run_compose() {
+  ensure_runtime
+  compose_args
+  APPSTORE_ENV_FILE="${APPSTORE_DIR}/.env" \
+  APPSTORE_DATA_DIR="${APPSTORE_DIR}/data" \
+  DUJIAO_PROJECT_ROOT="$ROOT_DIR" \
+    "${COMPOSE_ARGS[@]}" "$@"
+}
+
+list_plugins() {
+  printf '%-24s %-10s\n' 'PLUGIN' 'STATE'
+  local directory name state
+  while IFS= read -r directory; do
+    [[ -f "${directory}/plugin.json" ]] || continue
+    name="$(basename "$directory")"
+    state='installed'
+    [[ "$name" != 'appstore' ]] || state='core'
+    printf '%-24s %-10s\n' "$name" "$state"
+  done < <(find "$PLUGIN_HOME" -mindepth 1 -maxdepth 1 -type d -print | LC_ALL=C sort)
+}
+
+apply_stack() {
+  run_compose config --quiet
+  run_compose up -d --remove-orphans
+  printf '插件宿主与 App Store 已应用。\n'
+}
+
+usage() {
+  cat <<'EOF'
+用法:
+  ./plugins/dujiao plugin apply
+  ./plugins/dujiao plugin list
+  ./plugins/dujiao plugin config
+  ./plugins/dujiao plugin command <任意 docker compose 参数...>
+
+只需把完整 plugins/ 文件夹放到项目根目录，再执行 plugin apply。
+App Store 是永久核心插件；其他插件在 App Store 后台安装、配置、启用、禁用和删除。
+EOF
+}
+
+[[ "${1:-}" == 'plugin' ]] || {
+  usage
+  exit 1
+}
+
+case "${2:-}" in
+  apply)
+    apply_stack
+    ;;
+  list)
+    list_plugins
+    ;;
+  config)
+    run_compose config
+    ;;
+  command)
+    shift 2
+    (($# > 0)) || die 'command 后缺少 docker compose 参数'
+    run_compose "$@"
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac

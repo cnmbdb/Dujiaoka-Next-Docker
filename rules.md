@@ -12,7 +12,7 @@
 
 - `Dujiao-Next`：主系统（API/User/Admin/Postgres/Redis）。
 - `plugins/appstore`：拥有插件安装、启用、禁用、配置与删除能力的核心应用商店服务。
-- 核心服务和官方插件使用远程镜像；App Store 永久加载，其他插件由 `./dujiao` 根据 `plugins/*/.enabled` 统一编排。
+- 核心服务和官方插件使用远程镜像；`plugins/dujiao` 只编排宿主与永久核心 App Store，其他插件由 App Store 管理。
 
 ## 3. 开发原则
 
@@ -41,7 +41,7 @@
   - Admin: `dujiao-next-admin.aloure-web.top` -> `http://dujiao-next-admin:80`
 - 生产部署默认流程：
   1. `git pull`
-  2. `./dujiao plugin apply`
+  2. `./plugins/dujiao plugin apply`
   3. 健康检查 + 关键接口回归（登录、下单、支付回调）
 
 ## 6. 配置规则
@@ -54,7 +54,7 @@
 
 - 所有问题先看证据：容器状态、接口响应、API 日志、数据库状态。
 - 常用排障命令：
-  - `./dujiao plugin command ps`
+  - `./plugins/dujiao plugin command ps`
   - `docker logs -f dujiao-next-api`
   - `docker logs -f dujiao-next-user`
   - `docker logs -f dujiao-next-admin`

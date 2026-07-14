@@ -1,17 +1,13 @@
 name: dujiao-plugin-appstore
 
 services:
-  admin:
-    depends_on:
-      - appstore
-
   appstore:
     image: ${APPSTORE_IMAGE:-ghcr.io/cnmbdb/dujioka-next-tgbot/appstore-expand}:${APPSTORE_TAG:-latest}
     pull_policy: always
     container_name: dujiao-plugin-appstore
     restart: unless-stopped
     env_file:
-      - path: ./plugins/appstore/.env
+      - path: ${APPSTORE_ENV_FILE:-.env}
         required: false
     environment:
       PORT: 3010
@@ -29,8 +25,8 @@ services:
       APPSTORE_PLUGIN_ROOT: /workspace/project/plugins
       APPSTORE_COMPOSE_FILE: /workspace/project/docker-compose.yml
     volumes:
-      - ./plugins/appstore/data:/plugin/data
-      - ./:/workspace/project
+      - ${APPSTORE_DATA_DIR:-./data}:/plugin/data
+      - ${DUJIAO_PROJECT_ROOT:-../..}:/workspace/project
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - dujiao-network
@@ -40,3 +36,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+networks:
+  dujiao-network:
+    name: dujiao-network
+    external: true

@@ -1,0 +1,15 @@
+services:
+  admin:
+    volumes:
+      - ./plugins/host/admin-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./plugins/loader.js:/usr/share/nginx/html/plugin-loader.js:ro
+      - ./data/plugins:/var/lib/dujiao/plugins:ro
+    depends_on:
+      appstore:
+        condition: service_healthy
+
+networks:
+  dujiao-network:
+    name: dujiao-network
+    external: false
+    driver: bridge
