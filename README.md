@@ -68,7 +68,8 @@ chmod +x plugins/dujiao
 ```
 
 `.env` 关键开关说明：
-- 默认生产部署不映射宿主机端口。
+- 默认映射用户前台 `3000`、API `3001`、管理后台 `3002`。
+- `HOST_BIND_IP=0.0.0.0` 允许通过服务器 IP 访问；如果只使用本机 Nginx 反向代理，可改为 `127.0.0.1`。
 - Cloudflare Tunnel 作为可选插件放在 `plugins/cftun/`，公网域名和 Tunnel Token 不放主 `.env`。
 
 注意事项（重要）：
@@ -79,7 +80,7 @@ chmod +x plugins/dujiao
 ```
 
 2. 当前 `.env` 里 `API_URL` 为 `http://127.0.0.1:3001`，上域名后必须改为公网 API 域名（例如 `https://api.xxx.com`），否则浏览器会请求回环地址。
-3. 当前生产 Compose 不开放 `IP:端口` 访问，这是正常现象；应通过 Cloudflare Tunnel 域名访问。
+3. 直接访问默认为用户前台 `http://服务器IP:3000`、API `http://服务器IP:3001`、管理后台 `http://服务器IP:3002`。
 
 ## 第 6 步：查看容器并进入后台
 
@@ -100,7 +101,7 @@ chmod +x plugins/dujiao
 2. 添加网站并绑定你的域名。
 3. 在网站 SSL 页面申请证书（Let's Encrypt）。
 4. 开启强制 HTTPS。
-5. 本项目默认不开放外部 `IP:端口` 访问；确认 Cloudflare Tunnel 域名可用后即可。
+5. 确认域名反向代理或 Cloudflare Tunnel 可用后，可将 `HOST_BIND_IP` 改为 `127.0.0.1` 来禁止外部直接访问端口。
 
 ## 常用运维命令
 

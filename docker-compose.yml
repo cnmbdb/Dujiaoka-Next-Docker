@@ -2,7 +2,7 @@ services:
   # ---------------------------------------------------------------------------
   # API 服务
   # 提供后端 API 接口
-  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
+  # 默认映射到宿主机 3001 端口
   # 镜像: dujiaonext/api:${TAG}
   # ---------------------------------------------------------------------------
   api:
@@ -10,8 +10,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-api
     restart: unless-stopped
-    expose:
-      - "3000"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${API_PORT:-3001}:3000"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -42,7 +42,7 @@ services:
   # ---------------------------------------------------------------------------
   # User 服务（用户前台）
   # 提供用户前端界面
-  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
+  # 默认映射到宿主机 3000 端口
   # 镜像: dujiaonext/user:${TAG}
   # ---------------------------------------------------------------------------
   user:
@@ -50,8 +50,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-user
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${USER_PORT:-3000}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -71,7 +71,7 @@ services:
   # ---------------------------------------------------------------------------
   # Admin 服务（后台管理）
   # 提供后台管理界面
-  # 生产环境不开放宿主机端口，通过 Docker 内部网络或 CFTun 插件访问
+  # 默认映射到宿主机 3002 端口
   # 镜像: dujiaonext/admin:${TAG}
   # ---------------------------------------------------------------------------
   admin:
@@ -79,8 +79,8 @@ services:
     pull_policy: always
     container_name: dujiao-next-admin
     restart: unless-stopped
-    expose:
-      - "80"
+    ports:
+      - "${HOST_BIND_IP:-0.0.0.0}:${ADMIN_PORT:-3002}:80"
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
