@@ -1,0 +1,50 @@
+# Dujiao-Bot Git Ignore
+
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data
+data/
+
+# Build
+dist/
+build/
+admin/.next/
+admin/out/
+admin/*.tsbuildinfo
+admin/node_modules/
+backend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
+
+# Backup
+*.bak
+*.backup

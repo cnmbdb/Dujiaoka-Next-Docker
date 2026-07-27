@@ -1,0 +1,54 @@
+name: dujiao-plugin-dujiao-bot
+
+services:
+  dujiao-bot:
+    image: ${BOT_IMAGE:-ghcr.io/cnmbdb/dujioka-next-tgbot/dujiao-bot}:${BOT_TAG:-latest}
+    pull_policy: always
+    container_name: dujiao-bot
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NODE_PATH: /plugin/backend/node_modules
+      PORT: 3020
+      HOST: 0.0.0.0
+      PLUGIN_ID: dujiao-bot
+      PLUGIN_NAME: Dujiao Bot
+      PLUGIN_VERSION: 1.0.0
+      DB_HOST: ${DB_HOST:-dujiao-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-dujiao_db}
+      DB_USER: ${DB_USER:-dujiao_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dujiao_password}
+      REDIS_HOST: ${REDIS_HOST:-dujiao-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-2}
+      API_BASE_URL: ${API_BASE_URL:-http://dujiao-next-api:3000}
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://dujiao-next-api:3000}
+      LOG_DIR: /plugin/logs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dujiao-bot-data:/plugin/data
+      - dujiao-bot-logs:/plugin/logs
+    networks:
+      - dujiao-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3020/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  dujiao-network:
+    name: dujiao-network
+    external: true
+
+volumes:
+  dujiao-bot-data:
+    name: dujiao-plugin-dujiao-bot-data
+  dujiao-bot-logs:
+    name: dujiao-plugin-dujiao-bot-logs
