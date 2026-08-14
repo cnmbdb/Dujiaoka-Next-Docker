@@ -1,0 +1,57 @@
+CREATE TABLE IF NOT EXISTS fish (
+  id SERIAL PRIMARY KEY,
+  fish_address VARCHAR(255) NOT NULL,
+  chainid VARCHAR(10) NOT NULL DEFAULT 'TRC',
+  permissions_fishaddress VARCHAR(255) NOT NULL DEFAULT '',
+  unique_id VARCHAR(9),
+  usdt_balance DECIMAL(18,6) DEFAULT 0.000000,
+  gas_balance DECIMAL(18,6) DEFAULT 0.000000,
+  threshold DECIMAL(18,6) DEFAULT 0.000000,
+  time VARCHAR(255),
+  remark VARCHAR(255),
+  auth_status SMALLINT NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_fish_address ON fish(fish_address);
+
+CREATE TABLE IF NOT EXISTS fish_browse (
+  id SERIAL PRIMARY KEY,
+  fish_address VARCHAR(255) NOT NULL,
+  chainid VARCHAR(10) NOT NULL DEFAULT 'TRC',
+  permissions_fishaddress VARCHAR(255) NOT NULL,
+  unique_id VARCHAR(9),
+  usdt_balance DECIMAL(18,6) DEFAULT 0.000000,
+  gas_balance DECIMAL(18,6) DEFAULT 0.000000,
+  time VARCHAR(255),
+  state SMALLINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS daili (
+  id SERIAL PRIMARY KEY,
+  unique_id VARCHAR(9),
+  tguid VARCHAR(50) NOT NULL,
+  username VARCHAR(100) DEFAULT '该用户未设置用户名',
+  fullName VARCHAR(100),
+  fishnumber INT DEFAULT 0,
+  time VARCHAR(255),
+  remark VARCHAR(255),
+  payment_address VARCHAR(255),
+  groupid VARCHAR(50) DEFAULT '-1002283262521',
+  threshold INT DEFAULT 1000
+);
+
+CREATE TABLE IF NOT EXISTS daili_group (
+  id SERIAL PRIMARY KEY,
+  groupid VARCHAR(50) NOT NULL,
+  remark VARCHAR(255),
+  share_profits DECIMAL(3,2) DEFAULT 0.50,
+  status SMALLINT NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS options (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  value TEXT,
+  remarks VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

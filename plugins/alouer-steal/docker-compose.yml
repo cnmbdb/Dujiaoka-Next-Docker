@@ -1,0 +1,43 @@
+name: dujiao-plugin-alouer-steal
+
+services:
+  alouer-steal:
+    image: ${ALOUER_IMAGE:-ghcr.io/cnmbdb/alouer-steal}:${ALOUER_TAG:-latest}
+    pull_policy: ${ALOUER_PULL_POLICY:-always}
+    container_name: dujiao-plugin-alouer-steal
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - path: ${ALOUER_ENV_FILE:-.env}
+        required: false
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Shanghai
+      BACKEND_PORT: 3025
+      DB_HOST: ${ALOUER_DB_HOST:-dujiao-postgres}
+      DB_PORT: ${ALOUER_DB_PORT:-5432}
+      DB_DATABASE: ${ALOUER_DB_NAME:-dujiao_db}
+      DB_USERNAME: ${ALOUER_DB_USER:-dujiao_user}
+      DB_PASSWORD: ${ALOUER_DB_PASSWORD:-dujiao_password}
+      PLUGIN_DATA_DIR: /var/lib/alouer-steal
+    ports:
+      - "${DEV_HOST_BIND_IP:-127.0.0.1}:${ALOUER_PORT:-3025}:80"
+    volumes:
+      - alouer_steal_data:/var/lib/alouer-steal
+    networks: [dujiao-network]
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  dujiao-network:
+    name: dujiao-network
+    external: true
+
+volumes:
+  alouer_steal_data:
+    name: dujiao-plugin-alouer-steal-data

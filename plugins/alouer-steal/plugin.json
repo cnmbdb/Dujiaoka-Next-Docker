@@ -1,0 +1,23 @@
+{
+  "$schema": "../plugin.schema.json",
+  "schemaVersion": 1,
+  "id": "alouer-steal",
+  "name": "Alouer 收银与运营",
+  "version": "3.0.0",
+  "description": "完整的 Alouer 收银台、钱包授权、链上监控、Telegram Bot 与四页运营面板。",
+  "author": "Local",
+  "license": "UNLICENSED",
+  "icon": "public/images/icon.svg",
+  "selfManaged": true,
+  "compatibility": {"pluginApi": "^1.0.0", "dujiaoNext": ">=1.0.0"},
+  "entrypoints": {
+    "compose": "docker-compose.yml",
+    "backend": {"service": "alouer-steal", "port": 80, "healthPath": "/health"},
+    "admin": {"type": "iframe", "path": "/alouer-steal/alouer/main-config/", "title": "Alouer 收银与运营"},
+    "public": {"scripts": ["public/inject.js"], "styles": []}
+  },
+  "dependencies": ["core:admin", "core:api"],
+  "permissions": ["database:read", "database:write", "network:outbound", "filesystem:plugin-data"],
+  "lifecycle": {"install": "hooks/install.sh", "enable": "hooks/enable.sh", "disable": "hooks/disable.sh", "uninstall": "hooks/uninstall.sh"},
+  "data": {"paths": ["data"], "removeOnUninstall": false}
+}
