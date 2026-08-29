@@ -12,6 +12,10 @@ Railway 的环境变量分为两层：
 - `user.env.example` → `user`
 - `appstore-expand.env.example` → `appstore-expand`
 
+`admin/` 与 `user/` 是 Railway 专用的轻量包装镜像。它们仍以官方
+`dujiaonext/admin:latest` 和 `dujiaonext/user:latest` 为基础，只替换 Nginx
+配置，以连接 Railway 私网中的 API 和 App Store。
+
 Postgres 和 Redis 是 Railway 管理服务，不要把本机 `.env` 里的 `DB_*` 或 `REDIS_*` 直接粘贴到它们上面。API 通过 Railway 引用变量读取它们：
 
 ```text

@@ -1,0 +1,5 @@
+FROM docker.io/dujiaonext/admin:latest
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
