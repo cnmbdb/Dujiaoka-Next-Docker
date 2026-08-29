@@ -6,6 +6,8 @@ node_modules/
 plugins/*/admin-panel/.next/
 plugins/*/admin-panel/out/
 
+deploy/railway/env/*.env
+
 data/
 data/**
 !data/.gitkeep

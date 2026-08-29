@@ -10,7 +10,7 @@ services:
       - path: ${APPSTORE_ENV_FILE:-.env}
         required: false
     environment:
-      PORT: 3010
+      PORT: ${APPSTORE_PORT:-3010}
       APPSTORE_TITLE: ${APPSTORE_TITLE:-Dujiao App Store}
       APPSTORE_BUTTON_TEXT: ${APPSTORE_BUTTON_TEXT:-插件商店}
       APPSTORE_STATUS_TEXT: ${APPSTORE_STATUS_TEXT:-插件管理服务已启用}

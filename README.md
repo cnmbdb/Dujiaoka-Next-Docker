@@ -95,6 +95,20 @@ chmod +x plugins/dujiao
 - 账号：`admin`
 - 密码：`admin123`
 
+## Railway 部署变量
+
+Railway 部署使用远程镜像服务，不会读取本机 `.env` 文件。项目已按“共享变量 + 服务变量”整理模板：
+
+```text
+deploy/railway/env/shared.env.example
+deploy/railway/env/api.env.example
+deploy/railway/env/admin.env.example
+deploy/railway/env/user.env.example
+deploy/railway/env/appstore-expand.env.example
+```
+
+在 Railway 的 Raw Editor 中，先把 `shared.env.example` 粘贴到 production 环境级变量，再把四个服务模板分别粘贴到对应 Service。不要把根目录 `.env` 原样复制给每个服务；根目录 `.env` 只供本地 Docker Compose 使用。API 通过 `${{Postgres.*}}` 和 `${{Redis.*}}` 引用 Railway 管理的数据库与缓存变量。
+
 ## 第 7 步：绑定域名并启用 HTTPS
 
 1. 宝塔首页 -> Docker -> 网站。
