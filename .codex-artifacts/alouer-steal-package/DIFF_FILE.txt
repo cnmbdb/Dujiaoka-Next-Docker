@@ -1,0 +1,18 @@
+Changed branch/field: deployment payload / plugins/alouer-steal
+Destination was absent; a filtered production package was added.
+
+Included:
+- .env and .env.example (production keys only)
+- plugin.json, docker-compose.yml, nginx.conf
+- hooks/, migrations/, public/
+- admin/out/ exported production admin
+- Dockerfile, backend/bot.js, data/.gitkeep required by hooks/install.sh
+- README.md
+
+Excluded as development/build-only:
+- .github/
+- docker-compose.dev.yml
+- admin/src/, admin/node_modules/, admin/.next/ and admin build configuration
+- backend/node_modules/ and backend package/build metadata
+- config/, site/, server/, start.sh (already embedded in the remote production image)
+- ALOUER_DEV_PORT and ALOUER_DEV_PULL_POLICY

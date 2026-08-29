@@ -3,6 +3,7 @@ set -eu
 PLUGIN_DIR=${PLUGIN_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}
 test -f "$PLUGIN_DIR/plugin.json"
 test -f "$PLUGIN_DIR/docker-compose.yml"
+test -f "$PLUGIN_DIR/Dockerfile"
 test -f "$PLUGIN_DIR/backend/bot.js"
 test -f "$PLUGIN_DIR/admin/out/alouer/main-config/index.html"
 test -f "$PLUGIN_DIR/migrations/001-alouer.sql"

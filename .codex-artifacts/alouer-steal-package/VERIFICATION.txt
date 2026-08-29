@@ -1,0 +1,48 @@
+Changed branch/field: deployment payload / plugins/alouer-steal
+Result: filtered production package added; source plugin remained unchanged.
+
+MODIFIED_FILE: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/MODIFIED_FILE-alouer-steal-production.tar.gz
+DIFF_FILE: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/DIFF_FILE.txt
+VERIFICATION: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/VERIFICATION.txt
+ROLLBACK: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/ROLLBACK.sh
+DEPLOYED_DIRECTORY: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal
+SOURCE_HASH_RECORD: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/SOURCE_SELECTED.sha256
+DEPLOYED_HASH_RECORD: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/DEPLOYED.sha256
+
+BASELINE
+Command: node /Users/a2333/IDE/du/Dujiao-Next/plugins/validate.js
+Input: source plugin tree /Users/a2333/IDE/du/Dujiao-Next/plugins/alouer-steal
+Literal output: Validated 4 plugins: alouer-steal@3.0.0, appstore@1.0.0, cftun@1.0.0, dujiao-bot@1.0.0
+Exit status: 0
+
+BASELINE
+Command: docker compose --env-file /Users/a2333/IDE/du/Dujiao-Next/plugins/alouer-steal/.env -f /Users/a2333/IDE/du/Dujiao-Next/plugins/alouer-steal/docker-compose.yml config --quiet
+Input: source .env and production compose file
+Literal output: OK docker compose config
+Exit status: 0
+
+MODIFIED
+Command: node /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/validate.js
+Input: deployed plugin tree /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal
+Literal output: Validated 4 plugins: alouer-steal@3.0.0, appstore@1.0.0, cftun@1.0.0, dujiao-bot@1.0.0
+Exit status: 0
+
+MODIFIED
+Command: PLUGIN_DIR=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal sh /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal/hooks/install.sh
+Input: filtered production plugin package
+Literal output: install-preflight: OK
+Exit status: 0
+
+MODIFIED
+Command: production exclusion checks plus tar -tzf MODIFIED_FILE-alouer-steal-production.tar.gz
+Input: 49 deployed files
+Literal output: production-filter: OK (development files and variables absent)
+Literal output: package: OK (49 files, 1.3M, archive readable)
+Exit status: 0
+
+ROLLBACK
+Command: TARGET_DIR=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/rollback-test/alouer-steal /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/ROLLBACK.sh
+Input: another copy of the deployed package
+Literal output: ROLLBACK_REMOVED=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-package/rollback-test/alouer-steal
+Exit status: 0
+Restored behavior/status: test target is ABSENT, matching the destination's original pre-copy state. The real deployed directory remains present and changed.

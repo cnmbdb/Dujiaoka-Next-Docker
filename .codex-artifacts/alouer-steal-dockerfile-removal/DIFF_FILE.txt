@@ -1,0 +1,8 @@
+Changed branch/field: production deployment payload / Dockerfile requirement
+Risk: LOW
+Direct dependency: hooks/install.sh contained one Dockerfile existence check.
+Change:
+- removed plugins/alouer-steal/Dockerfile from the deployment package
+- removed test -f "$PLUGIN_DIR/Dockerfile" from hooks/install.sh
+Reason: docker-compose.yml pulls the remote ALOUER_IMAGE and has no build section.
+Production runtime behavior remains remote-image based.

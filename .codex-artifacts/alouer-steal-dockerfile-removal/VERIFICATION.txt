@@ -1,0 +1,29 @@
+Changed branch/field: production deployment payload / Dockerfile requirement
+Risk: LOW; one direct dependency in hooks/install.sh was updated.
+
+MODIFIED_FILE: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/MODIFIED_FILE-alouer-steal-production.tar.gz
+DIFF_FILE: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/DIFF_FILE.txt
+VERIFICATION: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/VERIFICATION.txt
+ROLLBACK: /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/ROLLBACK.sh
+
+BASELINE
+Command: PLUGIN_DIR=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal sh /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal/hooks/install.sh
+Input: pre-change package containing Dockerfile and its install check
+Literal output: baseline-install-preflight: OK
+Exit status: 0
+
+MODIFIED
+Command: PLUGIN_DIR=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal sh /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/plugins/alouer-steal/hooks/install.sh; docker compose --env-file .env -f docker-compose.yml config --quiet; node ../validate.js
+Input: production package without Dockerfile and without its install check
+Literal output: modified-install-preflight: OK
+Literal output: Validated 4 plugins: alouer-steal@3.0.0, appstore@1.0.0, cftun@1.0.0, dujiao-bot@1.0.0
+Literal output: production-package: OK (Dockerfile absent, remote-image compose valid, files=48)
+Exit status: 0
+
+ROLLBACK
+Command: TARGET_DIR=/Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/rollback-test/alouer-steal /Users/a2333/IDE/部署到服务器的文件/Dujiao-Next/.codex-artifacts/alouer-steal-dockerfile-removal/ROLLBACK.sh
+Input: another copy of the modified production package
+Literal output: ROLLBACK_RESTORED=.../rollback-test/alouer-steal/Dockerfile
+Literal output: ROLLBACK_RESTORED=.../rollback-test/alouer-steal/hooks/install.sh
+Exit status: 0
+Restored behavior/status: test copy again requires the local Dockerfile; real deployed package remains remote-image-only with Dockerfile absent.
